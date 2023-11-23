@@ -532,7 +532,6 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget>
 
   Widget buildCastWidget() {
     return Container(
-      color: Colors.deepPurple,
       height: betterPlayerControlsConfiguration.controlBarHeight,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
