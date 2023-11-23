@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'dart:math';
+
 import 'package:better_player/better_player.dart';
 import 'package:better_player/src/controls/better_player_clickable_widget.dart';
 import 'package:better_player/src/core/better_player_utils.dart';
 import 'package:collection/collection.dart' show IterableExtension;
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -522,8 +522,7 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget>
   void changePlayerControlsNotVisible(bool notVisible) {
     setState(() {
       if (notVisible) {
-        betterPlayerController?.postEvent(
-            BetterPlayerEvent(BetterPlayerEventType.controlsHiddenStart));
+        betterPlayerController?.postEvent(BetterPlayerEvent(BetterPlayerEventType.controlsHiddenStart));
       }
       controlsNotVisible = notVisible;
     });
@@ -531,22 +530,20 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget>
 
   late ChromeCastController chromeCastController;
 
-  Widget buildCastWidget(bool hideStuff) {
-    return AnimatedOpacity(
-      opacity: hideStuff ? 0.0 : 1.0,
-      duration: betterPlayerControlsConfiguration.controlsHideTime,
-      child: Container(
-        height: betterPlayerControlsConfiguration.controlBarHeight,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Stack(
-              children: [
-                ChromeCastButton(
-                  onButtonCreated: (controller) {
-                    print("ON button created!");
-                    chromeCastController = controller;
-                  },
+  Widget buildCastWidget() {
+    return Container(
+      color: Colors.deepPurple,
+      height: betterPlayerControlsConfiguration.controlBarHeight,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Stack(
+            children: [
+              ChromeCastButton(
+                onButtonCreated: (controller) {
+                  print("ON button created!");
+                  chromeCastController = controller;
+                },
                 ),
                 BetterPlayerMaterialClickableWidget(
                   onTap: () {
@@ -566,7 +563,6 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget>
             )
           ],
         ),
-      ),
     );
   }
 }
