@@ -61,6 +61,6 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion"
     implementation "androidx.multidex:multidex:$multidexVersion"
     //ChromeCast dependencies
-    implementation 'com.google.android.gms:play-services-cast-framework:15.0.0'
-    implementation 'com.google.android.exoplayer:extension-cast:2.9.6'
+    implementation 'com.google.android.gms:play-services-cast-framework:21.3.0'
+    implementation 'com.google.android.exoplayer:extension-cast:2.19.1'
 }

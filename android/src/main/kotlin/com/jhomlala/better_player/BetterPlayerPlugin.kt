@@ -13,19 +13,17 @@ import android.os.Looper
 import android.util.Log
 import android.util.LongSparseArray
 import com.jhomlala.better_player.BetterPlayerCache.releaseCache
-import io.flutter.embedding.engine.plugins.FlutterPlugin
-import io.flutter.embedding.engine.plugins.activity.ActivityAware
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
 import io.flutter.embedding.engine.loader.FlutterLoader
-import io.flutter.plugin.common.MethodCall
-import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.EventChannel
+import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.BinaryMessenger
+import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.MethodCall
+import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.view.TextureRegistry
-import java.lang.Exception
-import java.util.HashMap
 
 /**
  * Android platform implementation of the VideoPlayerPlugin.
@@ -39,6 +37,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     private var activity: Activity? = null
     private var pipHandler: Handler? = null
     private var pipRunnable: Runnable? = null
+    private lateinit var chromeCastFactoryJava: ChromeCastFactoryJava
     override fun onAttachedToEngine(binding: FlutterPluginBinding) {
         val loader = FlutterLoader()
         flutterState = FlutterState(
@@ -60,6 +59,9 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             binding.textureRegistry
         )
         flutterState?.startListening(this)
+
+        chromeCastFactoryJava = ChromeCastFactoryJava(binding.binaryMessenger)
+        binding.platformViewRegistry.registerViewFactory("ChromeCastButton", chromeCastFactoryJava)
     }
 
 
@@ -75,6 +77,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activity = binding.activity
+        chromeCastFactoryJava.activty = activity
     }
 
     override fun onDetachedFromActivityForConfigChanges() {}
@@ -140,6 +143,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         }
     }
 
+    private var castPlayer: BetterPlayer? = null
     private fun onMethodCall(
         call: MethodCall,
         result: MethodChannel.Result,
@@ -219,6 +223,21 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             DISPOSE_METHOD -> {
                 dispose(player, textureId)
                 result.success(null)
+            }
+            "startCast" -> {
+                castPlayer?.stopCast()
+                castPlayer = player
+                player.startCast()
+                result.success(null)
+            }
+            "enableCast" -> {
+                val dataSource = dataSources[textureId]
+                val uri = getParameter(dataSource, URI_PARAMETER, "")
+                player.enableCast(uri)
+                result.success(null)
+            }
+            "disableCast" -> {
+                player.disableCast()
             }
             else -> result.notImplemented()
         }
