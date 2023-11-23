@@ -310,7 +310,7 @@ bool _remoteCommandsInitialized = false;
             NSString* cacheKey = dataSource[@"cacheKey"];
             NSNumber* maxCacheSize = dataSource[@"maxCacheSize"];
             NSString* videoExtension = dataSource[@"videoExtension"];
-            
+
             int overriddenDuration = 0;
             if ([dataSource objectForKey:@"overriddenDuration"] != [NSNull null]){
                 overriddenDuration = [dataSource[@"overriddenDuration"] intValue];
@@ -429,14 +429,14 @@ bool _remoteCommandsInitialized = false;
             NSDictionary* headers = dataSource[@"headers"];
             NSNumber* maxCacheSize = dataSource[@"maxCacheSize"];
             NSString* videoExtension = dataSource[@"videoExtension"];
-            
+
             if (headers == [ NSNull null ]){
                 headers = @{};
             }
             if (videoExtension == [NSNull null]){
                 videoExtension = nil;
             }
-            
+
             if (urlArg != [NSNull null]){
                 NSURL* url = [NSURL URLWithString:urlArg];
                 if ([_cacheManager isPreCacheSupportedWithUrl:url videoExtension:videoExtension]){
@@ -467,6 +467,12 @@ bool _remoteCommandsInitialized = false;
             }
             result(nil);
         } else {
+            [KTVHTTPCache cacheDeleteAllCaches];
+        } else if ([@"enableCast" isEqualToString:call.method]){
+            [player addAirPlayButton];
+        } else if ([@"disableCast" isEqualToString:call.method]){
+            [player removeAirPlayButton];
+        }else {
             result(FlutterMethodNotImplemented);
         }
     }

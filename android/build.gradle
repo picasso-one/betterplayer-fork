@@ -58,6 +58,7 @@ android {
         implementation "com.google.android.exoplayer:exoplayer-smoothstreaming:$exoPlayerVersion"
         implementation "com.google.android.exoplayer:exoplayer-ui:$exoPlayerVersion"
         implementation "com.google.android.exoplayer:extension-mediasession:$exoPlayerVersion"
+        implementation "com.google.android.exoplayer:extension-cast:$exoPlayerVersion"
         implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion"
         implementation "androidx.lifecycle:lifecycle-common:$lifecycleVersion"
         implementation "androidx.lifecycle:lifecycle-common-java8:$lifecycleVersion"

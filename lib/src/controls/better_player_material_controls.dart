@@ -208,6 +208,7 @@ class _BetterPlayerMaterialControlsState
                           controlsNotVisible, _onPlayerHide)
                     else
                       const SizedBox(),
+                    buildCastWidget(),
                     _buildMoreButton(),
                   ],
                 ),
