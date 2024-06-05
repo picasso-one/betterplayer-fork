@@ -173,6 +173,8 @@ class BetterPlayerControlsConfiguration {
   ///Middle button with replay, play, pause icon
   final bool enableReplayButton;
 
+  final Function()? exitButtonAdditionalFunction;
+
   const BetterPlayerControlsConfiguration({
     this.controlBarColor = Colors.black87,
     this.textColor = Colors.white,
@@ -228,7 +230,9 @@ class BetterPlayerControlsConfiguration {
     this.enableReplayButton = true,
     this.exitIcon = Icons.close,
     this.showExitButton = false,
-    this.minimumDurationToEnableProgressbar = Duration.zero});
+    this.minimumDurationToEnableProgressbar = Duration.zero,
+    this.exitButtonAdditionalFunction,
+  });
 
   factory BetterPlayerControlsConfiguration.white() {
     return const BetterPlayerControlsConfiguration(

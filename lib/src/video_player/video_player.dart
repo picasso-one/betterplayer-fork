@@ -466,7 +466,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     if (!_created || _isDisposed) {
       return;
     }
-    _timer?.cancel();
+    // _timer?.cancel();
     if (value.isPlaying) {
       await _videoPlayerPlatform.play(_textureId);
       _timer = Timer.periodic(
