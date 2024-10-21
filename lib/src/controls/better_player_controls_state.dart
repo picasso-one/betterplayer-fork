@@ -174,27 +174,17 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget> extends State
 
   ///Latest value can be null
   bool isLoading(VideoPlayerValue? latestValue) {
-    if (latestValue != null) {
-      if (!latestValue.isPlaying && latestValue.duration == null) {
-        return true;
-      }
+    if (latestValue == null) return false;
+    if (!latestValue.initialized) return true;
+    if (!latestValue.isPlaying && latestValue.isBuffering) return true;
 
-      final Duration position = latestValue.position;
-
-      Duration? bufferedEndPosition;
-      if (latestValue.buffered.isNotEmpty == true) {
-        bufferedEndPosition = latestValue.buffered.last.end;
-      }
-
-      if (bufferedEndPosition != null) {
-        final difference = bufferedEndPosition - position;
-
-        if (latestValue.isPlaying && latestValue.isBuffering && difference.inMilliseconds < _bufferingInterval) {
-          return true;
-        }
-      }
+    Duration? bufferedEndPosition = latestValue.buffered.isNotEmpty == true ? latestValue.buffered.last.end : null;
+    if (bufferedEndPosition != null) {
+      final difference = bufferedEndPosition - latestValue.position;
+      return latestValue.isPlaying && latestValue.isBuffering && difference.inMilliseconds < _bufferingInterval;
+    } else {
+      return false;
     }
-    return false;
   }
 
   void _showSubtitlesSelectionWidget() {
@@ -416,7 +406,7 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget> extends State
                 )),
             const SizedBox(width: 16),
             Text(
-              audioTrack.label!,
+              audioTrack.getDisplayName(),
               style: _getOverflowMenuElementTextStyle(isSelected),
             ),
           ],

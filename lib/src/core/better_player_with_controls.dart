@@ -72,6 +72,8 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
 
   @override
   Widget build(BuildContext context) {
+    final maxSize = MediaQuery.of(context).size;
+
     final BetterPlayerController betterPlayerController =
         BetterPlayerController.of(context);
 
@@ -98,9 +100,21 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
       width: double.infinity,
       color: betterPlayerController
           .betterPlayerConfiguration.controlsConfiguration.backgroundColor,
-      child: AspectRatio(
-        aspectRatio: aspectRatio,
-        child: _buildPlayerWithControls(betterPlayerController, context),
+      child: Stack(
+        children: [
+          AspectRatio(
+            aspectRatio: aspectRatio,
+            child: _buildPlayerWithControls(betterPlayerController, context),
+          ),
+          if (betterPlayerController.isPip && Platform.isIOS)
+            Positioned(
+              child: Container(
+                color: Colors.black,
+                height: maxSize.height,
+                width: maxSize.width,
+              ),
+            ),
+        ],
       ),
     );
 
