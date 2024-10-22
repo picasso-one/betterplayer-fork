@@ -593,7 +593,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// [bitrate] specifies bitrate of the selected track
   Future<void> setTrackParameters(int? width, int? height, int? bitrate) async {
     try {
-      await _videoPlayerPlatform.setTrackParameters(_textureId, width, height, bitrate);
+      await _videoPlayerPlatform.setTrackParameters(
+          _textureId, width, height, bitrate);
     } catch (e) {
       // no op, just to catch strange crashes
       // when async communication with platform fails

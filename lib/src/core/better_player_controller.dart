@@ -2,10 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:better_player/better_player.dart';
-import 'package:better_player/src/configuration/better_player_airplay_configuration.dart';
 import 'package:better_player/src/configuration/better_player_controller_event.dart';
-import 'package:better_player/src/configuration/better_player_play_next_video_configuration.dart';
-import 'package:better_player/src/configuration/better_player_skip_intro_configuration.dart';
 import 'package:better_player/src/core/better_player_utils.dart';
 import 'package:better_player/src/subtitles/better_player_subtitle.dart';
 import 'package:better_player/src/subtitles/better_player_subtitles_factory.dart';
@@ -154,6 +151,8 @@ class BetterPlayerController {
   ///Current app lifecycle state.
   AppLifecycleState _appLifecycleState = AppLifecycleState.resumed;
 
+  AppLifecycleState get appLifecycleState => _appLifecycleState;
+
   ///Flag which determines if controls (UI interface) is shown. When false,
   ///UI won't be shown (show only player surface).
   bool _controlsEnabled = true;
@@ -173,6 +172,10 @@ class BetterPlayerController {
   bool _wasInPipMode = false;
 
   bool get wasInPipMode => _wasInPipMode;
+
+  bool _isPip = false;
+
+  bool get isPip => _isPip;
 
   ///Was player in fullscreen before Picture in Picture opened.
   bool _wasInFullScreenBeforePiP = false;
@@ -637,7 +640,7 @@ class BetterPlayerController {
 
   ///Start video playback. Play will be triggered only if current lifecycle state
   ///is resumed.
-  Future<void> play() async {
+  Future<void> play({bool seekToLive = false}) async {
     if (videoPlayerController == null) {
       throw StateError("The data source has not been initialized");
     }
@@ -648,6 +651,8 @@ class BetterPlayerController {
       _wasPlayingBeforePause = null;
       _postEvent(BetterPlayerEvent(BetterPlayerEventType.play));
       _postControllerEvent(BetterPlayerControllerEvent.play);
+      final duration = videoPlayerController?.value.duration;
+      if (seekToLive && duration != null) seekTo(duration);
     }
   }
 
@@ -838,8 +843,10 @@ class BetterPlayerController {
       _postEvent(BetterPlayerEvent(BetterPlayerEventType.initialized));
     }
     if (currentVideoPlayerValue.isPip) {
+      _isPip = true;
       _wasInPipMode = true;
     } else if (_wasInPipMode) {
+      _isPip = false;
       _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStop));
       _wasInPipMode = false;
       if (!_wasInFullScreenBeforePiP) {
@@ -1052,7 +1059,7 @@ class BetterPlayerController {
           pause();
         } else {
           if (_wasPlayingBeforePause == true && !isPlaying()!) {
-            play();
+            play(seekToLive: isLiveStream());
           }
         }
       }
@@ -1122,14 +1129,16 @@ class BetterPlayerController {
   ///state, then video playback will stop. If showNotification is set in data
   ///source or handleLifecycle is false then this logic will be ignored.
   void setAppLifecycleState(AppLifecycleState appLifecycleState) {
+    _appLifecycleState = appLifecycleState;
+
     if (_isAutomaticPlayPauseHandled()) {
-      _appLifecycleState = appLifecycleState;
       if (appLifecycleState == AppLifecycleState.resumed) {
         if (_wasPlayingBeforePause == true && _isPlayerVisible) {
-          play();
+          play(seekToLive: isLiveStream());
         }
       }
       if (appLifecycleState == AppLifecycleState.paused) {
+        if (videoPlayerController?.value.isPip ?? false) return;
         _wasPlayingBeforePause ??= isPlaying();
         pause();
       }
@@ -1181,7 +1190,8 @@ class BetterPlayerController {
         !(videoPlayerController?.value.hasError ?? true);
 
     if (isPipSupported && canEnablePictureInPicture) {
-      if (isFullScreen) exitFullScreen();
+      _isPip = true;
+      exitFullScreen();
       _wasInFullScreenBeforePiP = _isFullScreen;
       _wasControlsEnabledBeforePiP = _controlsEnabled;
       setControlsEnabled(false);
@@ -1189,6 +1199,7 @@ class BetterPlayerController {
         _wasInFullScreenBeforePiP = _isFullScreen;
         await videoPlayerController?.enablePictureInPicture(
             left: 0, top: 0, width: 0, height: 0);
+
         enterFullScreen();
         _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
         return;
@@ -1203,7 +1214,8 @@ class BetterPlayerController {
           return;
         }
         final Offset position = renderBox.localToGlobal(Offset.zero);
-        return videoPlayerController?.enablePictureInPicture(
+
+        await videoPlayerController?.enablePictureInPicture(
           left: position.dx,
           top: position.dy,
           width: renderBox.size.width,
@@ -1225,6 +1237,8 @@ class BetterPlayerController {
     if (videoPlayerController == null) {
       throw StateError("The data source has not been initialized");
     }
+    _isPip = false;
+    _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStop));
     return videoPlayerController!.disablePictureInPicture();
   }
 
@@ -1378,7 +1392,7 @@ class BetterPlayerController {
   ///cache started for given [betterPlayerDataSource] then it will be ignored.
   Future<void> stopPreCache(
       BetterPlayerDataSource betterPlayerDataSource) async {
-    return VideoPlayerController?.stopPreCache(betterPlayerDataSource.url,
+    return VideoPlayerController.stopPreCache(betterPlayerDataSource.url,
         betterPlayerDataSource.cacheConfiguration?.key);
   }
 
@@ -1399,11 +1413,13 @@ class BetterPlayerController {
   ///Dispose BetterPlayerController. When [forceDispose] parameter is true, then
   ///autoDispose parameter will be overridden and controller will be disposed
   ///(if it wasn't disposed before).
+  @mustCallSuper
   void dispose({bool forceDispose = false}) {
     if (!betterPlayerConfiguration.autoDispose && !forceDispose) {
       return;
     }
     if (!_disposed) {
+      beforePlayerTearDown();
       if (videoPlayerController != null) {
         pause();
         videoPlayerController!.removeListener(_onFullScreenStateChanged);
@@ -1421,5 +1437,9 @@ class BetterPlayerController {
       ///Delete files async
       _tempFiles.forEach((file) => file.delete());
     }
+  }
+
+  void beforePlayerTearDown() {
+    // do nothing, override
   }
 }
