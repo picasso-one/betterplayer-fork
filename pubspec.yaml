@@ -23,7 +23,7 @@ dependencies:
   xml: ^6.1.0
   flutter_to_airplay:
     git:
-      url: https://github.com/picasso-one/flutter_to_airplay_fork.git
+      url: https://bitbucket.toya.net.pl/scm/toyago/flutter_to_airplay_fork.git
       ref: develop
     #leave below for development and testing purposes
     #path: ../flutter_to_airplay_fork
