@@ -24,7 +24,7 @@ dependencies:
   flutter_to_airplay:
     git:
       url: https://bitbucket.toya.net.pl/scm/toyago/flutter_to_airplay_fork.git
-      ref: develop
+      ref: release/1.0
     #leave below for development and testing purposes
     #path: ../flutter_to_airplay_fork
 dev_dependencies:
