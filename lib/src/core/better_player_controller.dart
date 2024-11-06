@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:better_player/better_player.dart';
 import 'package:better_player/src/configuration/better_player_bitrate_configuration.dart';
 import 'package:better_player/src/configuration/better_player_controller_event.dart';
+import 'package:better_player/src/configuration/better_player_restart_tv_configuration.dart';
 import 'package:better_player/src/core/better_player_utils.dart';
 import 'package:better_player/src/subtitles/better_player_subtitle.dart';
 import 'package:better_player/src/subtitles/better_player_subtitles_factory.dart';
@@ -51,6 +52,8 @@ class BetterPlayerController {
   final BetterPlayerSkipIntroConfiguration? betterPlayerSkipIntroConfiguration;
 
   final BetterPLayerAirplayConfiguration? betterPLayerAirplayConfiguration;
+
+  final BetterPlayerRestartTvConfiguration? betterPlayerRestartTvConfiguration;
 
   ///Controls configuration
   BetterPlayerControlsConfiguration get betterPlayerControlsConfiguration => _betterPlayerControlsConfiguration;
@@ -227,6 +230,7 @@ class BetterPlayerController {
     this.betterPlayerPlaylistConfiguration,
     this.betterPlayerPlayNextVideoConfiguration,
     this.betterPlayerSkipIntroConfiguration,
+    this.betterPlayerRestartTvConfiguration,
     this.betterPLayerAirplayConfiguration,
     BetterPlayerDataSource? betterPlayerDataSource,
   }) {

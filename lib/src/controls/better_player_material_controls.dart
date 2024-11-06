@@ -280,7 +280,25 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                 children: [
                   if (_controlsConfiguration.enablePlayPause) _buildPlayPause(_controller!) else const SizedBox(),
                   if (betterPlayerController?.betterPlayerConfiguration.videoTitleText != null)
+                  if (betterPlayerController!.isFullScreen &&
+                      betterPlayerController!
+                              .betterPlayerRestartTvConfiguration !=
+                          null &&
+                      betterPlayerController!.isLiveStream())
+                    _buildRestart(_controller!),
+                  if (_controlsConfiguration.enablePlayPause)
+                    _buildPlayPause(_controller!)
+                  else
+                    const SizedBox(),
+                  if (betterPlayerController
+                          ?.betterPlayerConfiguration.videoTitleText !=
+                      null)
                     Expanded(flex: 4, child: _buildVideoTitle()),
+                  if (betterPlayerController!.isFullScreen &&
+                      betterPlayerController!
+                              .betterPlayerRestartTvConfiguration !=
+                          null)
+                    _buildIsLiveButton(_controller!),
                   _controlsConfiguration.enableProgressText
                       ? Expanded(flex: 6, child: _buildPosition())
                       : const SizedBox(),
@@ -582,6 +600,62 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
         child: Icon(
           controller.value.isPlaying ? _controlsConfiguration.pauseIcon : _controlsConfiguration.playIcon,
           color: _controlsConfiguration.iconsColor,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRestart(VideoPlayerController controller) {
+    return BetterPlayerMaterialClickableWidget(
+      key: const Key("better_player_material_controls_restart_button"),
+      onTap: () {
+        //todo functionality
+      },
+      child: Container(
+        height: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Icon(
+          Icons.skip_previous_rounded,
+          color: _controlsConfiguration.iconsColor,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIsLiveButton(VideoPlayerController controller) {
+    return BetterPlayerMaterialClickableWidget(
+      key: const Key("better_player_material_controls_is_live_button"),
+      onTap: () {
+        //todo functionality
+      },
+      child: Container(
+        height: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(
+          children: [
+            Icon(
+              Icons.fiber_manual_record_rounded,
+              color: betterPlayerController!.isLiveStream()
+                  ? betterPlayerController!
+                      .betterPlayerRestartTvConfiguration?.activeLiveColor
+                  : betterPlayerController!
+                      .betterPlayerRestartTvConfiguration?.inactiveLiveColor,
+              size: 6,
+            ),
+            SizedBox(width: 8),
+            Text(
+              betterPlayerController!
+                      .betterPlayerRestartTvConfiguration?.liveButtonText ??
+                  '',
+              style: TextStyle(
+                color: betterPlayerController!.isLiveStream()
+                    ? Colors.white
+                    : Colors.grey[400],
+              ),
+            ),
+          ],
         ),
       ),
     );
