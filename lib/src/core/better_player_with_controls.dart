@@ -42,6 +42,7 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
     playerVisibilityStreamController.add(true);
     _controllerEventSubscription =
         widget.controller!.controllerEventStream.listen(_onControllerChanged);
+    widget.controller!.setTrack(trackWithMaxBitrate());
     super.initState();
   }
 
@@ -60,6 +61,19 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
     playerVisibilityStreamController.close();
     _controllerEventSubscription?.cancel();
     super.dispose();
+  }
+
+  BetterPlayerAsmsTrack trackWithMaxBitrate() {
+    final asmsTracks = widget.controller!.betterPlayerAsmsTracks;
+    BetterPlayerAsmsTrack maxBitrateTrack =
+        BetterPlayerAsmsTrack.defaultTrack();
+
+    if (asmsTracks.length > 0 &&
+        widget.controller!.betterPlayerDataSource!.useInitialMaxBitrate!) {
+      maxBitrateTrack = asmsTracks.reduce(
+          (current, next) => current.bitrate! > next.bitrate! ? current : next);
+    }
+    return maxBitrateTrack;
   }
 
   void _onControllerChanged(BetterPlayerControllerEvent event) {

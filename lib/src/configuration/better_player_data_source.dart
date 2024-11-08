@@ -35,6 +35,8 @@ class BetterPlayerDataSource {
   ///Should player use hls /das audio tracks
   final bool? useAsmsAudioTracks;
 
+  final bool? useInitialMaxBitrate;
+
   ///List of strings that represents tracks names.
   ///If empty, then better player will choose name based on track parameters
   final List<String>? asmsTrackNames;
@@ -86,10 +88,12 @@ class BetterPlayerDataSource {
     this.useAsmsSubtitles = true,
     this.useAsmsTracks = true,
     this.useAsmsAudioTracks = true,
+    this.useInitialMaxBitrate = false,
     this.asmsTrackNames,
     this.resolutions,
     this.cacheConfiguration,
-    this.notificationConfiguration = const BetterPlayerNotificationConfiguration(
+    this.notificationConfiguration =
+        const BetterPlayerNotificationConfiguration(
       showNotification: false,
     ),
     this.overriddenDuration,
@@ -99,8 +103,10 @@ class BetterPlayerDataSource {
     this.placeholder,
     this.bufferingConfiguration = const BetterPlayerBufferingConfiguration(),
   }) : assert(
-            (type == BetterPlayerDataSourceType.network || type == BetterPlayerDataSourceType.file) ||
-                (type == BetterPlayerDataSourceType.memory && bytes?.isNotEmpty == true),
+            (type == BetterPlayerDataSourceType.network ||
+                    type == BetterPlayerDataSourceType.file) ||
+                (type == BetterPlayerDataSourceType.memory &&
+                    bytes?.isNotEmpty == true),
             "Url can't be null in network or file data source | bytes can't be null when using memory data source");
 
   ///Factory method to build network data source which uses url as data source
@@ -121,7 +127,8 @@ class BetterPlayerDataSource {
     BetterPlayerVideoFormat? videoFormat,
     BetterPlayerDrmConfiguration? drmConfiguration,
     Widget? placeholder,
-    BetterPlayerBufferingConfiguration bufferingConfiguration = const BetterPlayerBufferingConfiguration(),
+    BetterPlayerBufferingConfiguration bufferingConfiguration =
+        const BetterPlayerBufferingConfiguration(),
   }) =>
       BetterPlayerDataSource(
         BetterPlayerDataSourceType.network,
@@ -164,7 +171,8 @@ class BetterPlayerDataSource {
         resolutions: qualities,
         cacheConfiguration: cacheConfiguration,
         notificationConfiguration: notificationConfiguration =
-            const BetterPlayerNotificationConfiguration(showNotification: false),
+            const BetterPlayerNotificationConfiguration(
+                showNotification: false),
         overriddenDuration: overriddenDuration,
         placeholder: placeholder,
       );
@@ -194,7 +202,8 @@ class BetterPlayerDataSource {
         resolutions: qualities,
         cacheConfiguration: cacheConfiguration,
         notificationConfiguration: notificationConfiguration =
-            const BetterPlayerNotificationConfiguration(showNotification: false),
+            const BetterPlayerNotificationConfiguration(
+                showNotification: false),
         overriddenDuration: overriddenDuration,
         placeholder: placeholder,
       );
@@ -218,7 +227,8 @@ class BetterPlayerDataSource {
     String? videoExtension,
     BetterPlayerDrmConfiguration? drmConfiguration,
     Widget? placeholder,
-    BetterPlayerBufferingConfiguration? bufferingConfiguration = const BetterPlayerBufferingConfiguration(),
+    BetterPlayerBufferingConfiguration? bufferingConfiguration =
+        const BetterPlayerBufferingConfiguration(),
   }) =>
       BetterPlayerDataSource(
         type ?? this.type,
@@ -232,12 +242,14 @@ class BetterPlayerDataSource {
         useAsmsAudioTracks: useAsmsAudioTracks ?? this.useAsmsAudioTracks,
         resolutions: resolutions ?? this.resolutions,
         cacheConfiguration: cacheConfiguration ?? this.cacheConfiguration,
-        notificationConfiguration: notificationConfiguration ?? this.notificationConfiguration,
+        notificationConfiguration:
+            notificationConfiguration ?? this.notificationConfiguration,
         overriddenDuration: overriddenDuration ?? this.overriddenDuration,
         videoFormat: videoFormat ?? this.videoFormat,
         videoExtension: videoExtension ?? this.videoExtension,
         drmConfiguration: drmConfiguration ?? this.drmConfiguration,
         placeholder: placeholder ?? this.placeholder,
-        bufferingConfiguration: bufferingConfiguration ?? this.bufferingConfiguration,
+        bufferingConfiguration:
+            bufferingConfiguration ?? this.bufferingConfiguration,
       );
 }
