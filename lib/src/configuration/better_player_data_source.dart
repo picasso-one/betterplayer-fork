@@ -1,3 +1,4 @@
+import 'package:better_player/src/configuration/better_player_bitrate_configuration.dart';
 import 'package:better_player/src/configuration/better_player_buffering_configuration.dart';
 import 'package:better_player/src/configuration/better_player_data_source_type.dart';
 import 'package:better_player/src/configuration/better_player_drm_configuration.dart';
@@ -76,6 +77,8 @@ class BetterPlayerDataSource {
   ///platform.
   final BetterPlayerBufferingConfiguration bufferingConfiguration;
 
+  final BetterPlayerBitrateConfiguration? bitrateConfiguration;
+
   BetterPlayerDataSource(
     this.type,
     this.url, {
@@ -97,6 +100,7 @@ class BetterPlayerDataSource {
     this.videoExtension,
     this.drmConfiguration,
     this.placeholder,
+    this.bitrateConfiguration,
     this.bufferingConfiguration = const BetterPlayerBufferingConfiguration(),
   }) : assert(
             (type == BetterPlayerDataSourceType.network || type == BetterPlayerDataSourceType.file) ||
