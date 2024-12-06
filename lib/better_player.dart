@@ -21,6 +21,7 @@ export 'src/configuration/better_player_event_type.dart';
 export 'src/configuration/better_player_notification_configuration.dart';
 export 'src/configuration/better_player_play_next_video_configuration.dart';
 export 'src/configuration/better_player_skip_intro_configuration.dart';
+export 'src/configuration/better_player_bitrate_configuration.dart';
 export 'src/configuration/better_player_theme.dart';
 export 'src/configuration/better_player_translations.dart';
 export 'src/configuration/better_player_video_format.dart';
