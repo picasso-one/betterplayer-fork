@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:nativewrappers/_internal/vm/lib/ffi_allocation_patch.dart';
 
 import 'package:better_player/better_player.dart';
 import 'package:better_player/src/controls/better_player_clickable_widget.dart';
@@ -279,16 +278,14 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
               flex: 75,
               child: Row(
                 children: [
-                  if (_controlsConfiguration.enablePlayPause) _buildPlayPause(_controller!) else const SizedBox(),
-                  if (betterPlayerController?.betterPlayerConfiguration.videoTitleText != null)
-                  if (betterPlayerController!.isFullScreen &&
+                  if (!betterPlayerController!.isFullScreen &&
                       betterPlayerController!.betterPlayerRestartTvConfiguration != null &&
                       betterPlayerController!.isLiveStream())
                     _buildRestart(_controller!),
                   if (_controlsConfiguration.enablePlayPause) _buildPlayPause(_controller!) else const SizedBox(),
                   if (betterPlayerController?.betterPlayerConfiguration.videoTitleText != null)
                     Expanded(flex: 4, child: _buildVideoTitle()),
-                  if (betterPlayerController!.isFullScreen &&
+                  if (!betterPlayerController!.isFullScreen &&
                       betterPlayerController!.betterPlayerRestartTvConfiguration != null)
                     _buildIsLiveButton(_controller!),
                   _controlsConfiguration.enableProgressText
@@ -600,7 +597,7 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
   Widget _buildRestart(VideoPlayerController controller) {
     return BetterPlayerMaterialClickableWidget(
       key: const Key("better_player_material_controls_restart_button"),
-      onTap: () => betterPlayerController!.betterPlayerRestartTvConfiguration!.onRestartTvPressed.call(),
+      onTap: () => betterPlayerController!.betterPlayerRestartTvConfiguration!.onRestartTvPressed?.call(),
       child: Container(
         height: double.infinity,
         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -616,7 +613,7 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
   Widget _buildIsLiveButton(VideoPlayerController controller) {
     return BetterPlayerMaterialClickableWidget(
       key: const Key("better_player_material_controls_is_live_button"),
-      onTap: () => betterPlayerController!.betterPlayerRestartTvConfiguration!.onLiveTvPressed.call(),
+      onTap: () => betterPlayerController!.betterPlayerRestartTvConfiguration!.onLiveTvPressed?.call(),
       child: Container(
         height: double.infinity,
         margin: const EdgeInsets.symmetric(horizontal: 4),
