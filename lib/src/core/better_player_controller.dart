@@ -310,8 +310,14 @@ class BetterPlayerController {
   ///Set available max bitrate
   void setTrackWithMaxBitrate(List<BetterPlayerAsmsTrack> asmsTracks) {
     BetterPlayerAsmsTrack maxBitrateTrack = BetterPlayerAsmsTrack.defaultTrack();
+    BetterPlayerAsmsTrack? maxVideoBitrateBps;
 
-    if (asmsTracks.length > 0 &&
+    if (betterPlayerDataSource!.bitrateConfiguration?.maxVideoBitrateBps != null) {
+      maxVideoBitrateBps =
+          BetterPlayerAsmsTrack.createTrack(betterPlayerDataSource!.bitrateConfiguration?.maxVideoBitrateBps);
+      asmsTracks.add(maxVideoBitrateBps);
+      maxBitrateTrack = maxVideoBitrateBps;
+    } else if (asmsTracks.length > 0 &&
         betterPlayerDataSource!.bitrateConfiguration?.bitrateConfiguration == BitrateConfiguration.max) {
       maxBitrateTrack = asmsTracks.reduce((current, next) => current.bitrate! > next.bitrate! ? current : next);
     }

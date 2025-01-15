@@ -35,6 +35,8 @@ class BetterPlayerAsmsTrack {
     return BetterPlayerAsmsTrack('', 0, 0, 0, 0, '', '');
   }
 
+  factory BetterPlayerAsmsTrack.createTrack(int? bitrate) => BetterPlayerAsmsTrack('', 0, 0, bitrate, 0, '', '');
+
   @override
   // ignore: unnecessary_overrides
   int get hashCode => super.hashCode;
