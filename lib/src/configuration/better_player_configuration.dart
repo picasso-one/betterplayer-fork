@@ -17,8 +17,7 @@ class BetterPlayerConfiguration {
 
   /// When the video playback runs  into an error, you can build a custom
   /// error message.
-  final Widget Function(BuildContext context, String? errorMessage)?
-      errorBuilder;
+  final Widget Function(BuildContext context, String? errorMessage)? errorBuilder;
 
   /// The Aspect Ratio of the Video. Important to get the correct size of the
   /// video!
@@ -118,6 +117,9 @@ class BetterPlayerConfiguration {
   ///Defines title of video
   final String? videoTitleText;
 
+  ///Defines image of video
+  final String? videoImageUrl;
+
   const BetterPlayerConfiguration({
     this.aspectRatio,
     this.autoPlay = false,
@@ -156,6 +158,7 @@ class BetterPlayerConfiguration {
     this.expandToFill = true,
     this.useRootNavigator = false,
     this.videoTitleText,
+    this.videoImageUrl,
   });
 
   BetterPlayerConfiguration copyWith({
@@ -196,33 +199,24 @@ class BetterPlayerConfiguration {
       looping: looping ?? this.looping,
       fullScreenByDefault: fullScreenByDefault ?? this.fullScreenByDefault,
       placeholder: placeholder ?? this.placeholder,
-      showPlaceholderUntilPlay:
-          showPlaceholderUntilPlay ?? this.showPlaceholderUntilPlay,
+      showPlaceholderUntilPlay: showPlaceholderUntilPlay ?? this.showPlaceholderUntilPlay,
       placeholderOnTop: placeholderOnTop ?? this.placeholderOnTop,
       overlay: overlay ?? this.overlay,
       errorBuilder: errorBuilder ?? this.errorBuilder,
-      fullScreenAspectRatio:
-          fullScreenAspectRatio ?? this.fullScreenAspectRatio,
-      deviceOrientationsOnFullScreen:
-          deviceOrientationsOnFullScreen ?? this.deviceOrientationsOnFullScreen,
-      systemOverlaysAfterFullScreen:
-          systemOverlaysAfterFullScreen ?? this.systemOverlaysAfterFullScreen,
-      deviceOrientationsAfterFullScreen: deviceOrientationsAfterFullScreen ??
-          this.deviceOrientationsAfterFullScreen,
+      fullScreenAspectRatio: fullScreenAspectRatio ?? this.fullScreenAspectRatio,
+      deviceOrientationsOnFullScreen: deviceOrientationsOnFullScreen ?? this.deviceOrientationsOnFullScreen,
+      systemOverlaysAfterFullScreen: systemOverlaysAfterFullScreen ?? this.systemOverlaysAfterFullScreen,
+      deviceOrientationsAfterFullScreen: deviceOrientationsAfterFullScreen ?? this.deviceOrientationsAfterFullScreen,
       routePageBuilder: routePageBuilder ?? this.routePageBuilder,
       eventListener: eventListener ?? this.eventListener,
-      subtitlesConfiguration:
-          subtitlesConfiguration ?? this.subtitlesConfiguration,
-      controlsConfiguration:
-          controlsConfiguration ?? this.controlsConfiguration,
+      subtitlesConfiguration: subtitlesConfiguration ?? this.subtitlesConfiguration,
+      controlsConfiguration: controlsConfiguration ?? this.controlsConfiguration,
       fit: fit ?? this.fit,
       rotation: rotation ?? this.rotation,
-      playerVisibilityChangedBehavior: playerVisibilityChangedBehavior ??
-          this.playerVisibilityChangedBehavior,
+      playerVisibilityChangedBehavior: playerVisibilityChangedBehavior ?? this.playerVisibilityChangedBehavior,
       translations: translations ?? this.translations,
       autoDetectFullscreenDeviceOrientation:
-          autoDetectFullscreenDeviceOrientation ??
-              this.autoDetectFullscreenDeviceOrientation,
+          autoDetectFullscreenDeviceOrientation ?? this.autoDetectFullscreenDeviceOrientation,
       handleLifecycle: handleLifecycle ?? this.handleLifecycle,
       autoDispose: autoDispose ?? this.autoDispose,
       expandToFill: expandToFill ?? this.expandToFill,
