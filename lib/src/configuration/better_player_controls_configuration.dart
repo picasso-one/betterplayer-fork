@@ -131,6 +131,9 @@ class BetterPlayerControlsConfiguration {
   ///Flag used to enable/disable lock of full screen
   final bool onlyFullScreen;
 
+  ///Flag to change design of OSD controls
+  final bool useModernDesignControls;
+
   ///Custom items of overflow menu
   final List<BetterPlayerOverflowMenuItem> overflowMenuCustomItems;
 
@@ -237,6 +240,7 @@ class BetterPlayerControlsConfiguration {
     this.minimumDurationToEnableProgressbar = Duration.zero,
     this.showBackArrow = true,
     this.onlyFullScreen = false,
+    this.useModernDesignControls = false,
   });
 
   factory BetterPlayerControlsConfiguration.white() {
