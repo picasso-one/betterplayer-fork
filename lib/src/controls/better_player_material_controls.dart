@@ -187,7 +187,10 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     if (_betterPlayerController!.isFullScreen && _controlsConfiguration.useModernDesignControls)
-                      _buildExitButton(),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 24),
+                        child: _buildExitButton(),
+                      ),
                     if (_betterPlayerController!.isFullScreen &&
                         _betterPlayerController!.betterPlayerControlsConfiguration.showBackArrow &&
                         !_controlsConfiguration.useModernDesignControls)
@@ -203,7 +206,10 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                     if (_controlsConfiguration.showExitButton && !_controlsConfiguration.useModernDesignControls)
                       _buildExitButton()
                     else
-                      _buildExpandButton(),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 24),
+                        child: _buildExpandButton(),
+                      ),
                   ],
                 ),
               ),
@@ -309,7 +315,11 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                   if (defaultTargetPlatform == TargetPlatform.iOS && !_controlsConfiguration.useModernDesignControls)
                     _buildAirplayButton(),
                   if (_controlsConfiguration.enableMute) _buildMuteButton(_controller) else const SizedBox(),
-                  if (_controlsConfiguration.useModernDesignControls) _buildMoreButton(),
+                  if (_controlsConfiguration.useModernDesignControls)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 24),
+                      child: _buildMoreButton(),
+                    ),
                   if (_controlsConfiguration.enableFullscreen &&
                       !_controlsConfiguration.onlyFullScreen &&
                       !_controlsConfiguration.useModernDesignControls)
