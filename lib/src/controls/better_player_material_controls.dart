@@ -408,9 +408,15 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
               betterPlayerController!.betterPlayerRestartTvConfiguration != null &&
               betterPlayerController!.isLiveStream())
             _buildRestart(_controller!),
-          if (_controlsConfiguration.enableSkips) _buildModernSkipButton() else const SizedBox(),
+          if (_controlsConfiguration.enableSkips || betterPlayerController!.isLiveStream())
+            _buildModernSkipButton()
+          else
+            const SizedBox(),
           if (_controlsConfiguration.enablePlayPause) _buildModernReplayButton(_controller!),
-          if (_controlsConfiguration.enableSkips) _buildModernForwardButton() else const SizedBox(),
+          if (_controlsConfiguration.enableSkips || betterPlayerController!.isLiveStream())
+            _buildModernForwardButton()
+          else
+            const SizedBox(),
         ],
       );
 
@@ -449,18 +455,21 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
   }
 
   Widget _buildModernSkipButton() {
-    return _BetterPlayerModerBackgroundButton(
-      size: 48,
-      child: _buildHitAreaClickableButton(
-        icon: Text(
-          '-10s',
-          style: TextStyle(
-            color: _controlsConfiguration.iconsColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+    return Padding(
+      padding: const EdgeInsets.only(left: 24),
+      child: _BetterPlayerModerBackgroundButton(
+        size: 48,
+        child: _buildHitAreaClickableButton(
+          icon: Text(
+            '-10s',
+            style: TextStyle(
+              color: _controlsConfiguration.iconsColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
           ),
+          onClicked: skipBack,
         ),
-        onClicked: skipBack,
       ),
     );
   }
@@ -477,18 +486,28 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
   }
 
   Widget _buildModernForwardButton() {
+    final end = latestValue!.duration!.inMilliseconds;
+    final skip = (latestValue!.position +
+            Duration(milliseconds: betterPlayerControlsConfiguration.forwardSkipTimeInMilliseconds))
+        .inMilliseconds;
+
     return _BetterPlayerModerBackgroundButton(
       size: 48,
+      color: skip > end ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.8),
       child: _buildHitAreaClickableButton(
         icon: Text(
           '+10s',
           style: TextStyle(
-            color: _controlsConfiguration.iconsColor,
+            color: _controlsConfiguration.iconsColor.withOpacity(skip > end ? 0.5 : 1.0),
             fontSize: 14,
             fontWeight: FontWeight.w700,
           ),
         ),
-        onClicked: skipForward,
+        onClicked: () {
+          if (skip < end) {
+            skipForward();
+          }
+        },
       ),
     );
   }
