@@ -305,8 +305,7 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                   if (betterPlayerController?.betterPlayerConfiguration.videoTitleText != null &&
                       betterPlayerController!.isFullScreen)
                     Expanded(flex: 4, child: _buildVideoTitle()),
-                  if (!betterPlayerController!.isFullScreen &&
-                      betterPlayerController!.betterPlayerRestartTvConfiguration != null)
+                  if (betterPlayerController!.betterPlayerRestartTvConfiguration != null)
                     _buildIsLiveButton(_controller!),
                   _controlsConfiguration.enableProgressText
                       ? Expanded(flex: 6, child: _buildPosition())
@@ -404,8 +403,7 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
   Widget _modernControlRow() => Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (!betterPlayerController!.isFullScreen &&
-              betterPlayerController!.betterPlayerRestartTvConfiguration != null &&
+          if (betterPlayerController!.betterPlayerRestartTvConfiguration != null &&
               betterPlayerController!.isLiveStream())
             _buildRestart(_controller!),
           if (_controlsConfiguration.enableSkips || betterPlayerController!.isLiveStream())
@@ -730,7 +728,12 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
   Widget _buildRestart(VideoPlayerController controller) {
     return BetterPlayerMaterialClickableWidget(
       key: const Key("better_player_material_controls_restart_button"),
-      onTap: () => betterPlayerController!.betterPlayerRestartTvConfiguration!.onRestartTvPressed?.call(),
+      onTap: () {
+        if (betterPlayerController!.isFullScreen) {
+          _betterPlayerController!.exitFullScreen();
+        }
+        betterPlayerController!.betterPlayerRestartTvConfiguration!.onRestartTvPressed?.call();
+      },
       child: _BetterPlayerModerBackgroundButton(
         size: 48,
         child: Icon(
