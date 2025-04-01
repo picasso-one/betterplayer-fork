@@ -77,6 +77,10 @@ class BetterPlayerController {
   bool get showNextVideo => _showNextVideoButton;
   bool _showSkipIntro = false;
 
+  bool _wasFullscreen = false;
+
+  bool get wasFullscreen => _wasFullscreen;
+
   bool get showSkipIntro => _showSkipIntro;
 
   ///Time when last progress event was sent
@@ -577,6 +581,7 @@ class BetterPlayerController {
 
   ///Method which is invoked when full screen changes.
   Future<void> _onFullScreenStateChanged() async {
+    _wasFullscreen = !_wasFullscreen;
     if (videoPlayerController?.value.isPlaying == true && !_isFullScreen) {
       enterFullScreen();
       videoPlayerController?.removeListener(_onFullScreenStateChanged);
@@ -586,12 +591,14 @@ class BetterPlayerController {
   ///Enables full screen mode in player. This will trigger route change.
   void enterFullScreen() {
     _isFullScreen = true;
+    _wasFullscreen = false;
     _postControllerEvent(BetterPlayerControllerEvent.openFullscreen);
   }
 
   ///Disables full screen mode in player. This will trigger route change.
   void exitFullScreen() {
     _isFullScreen = false;
+    _wasFullscreen = true;
     _postControllerEvent(BetterPlayerControllerEvent.hideFullscreen);
   }
 
@@ -789,6 +796,7 @@ class BetterPlayerController {
 
   ///Listener used to handle video player changes.
   void _onVideoPlayerChanged() async {
+    final fullscreenState = await betterPlayerRestartTvConfiguration?.getFullscreenState ?? false;
     final VideoPlayerValue currentVideoPlayerValue =
         videoPlayerController?.value ?? VideoPlayerValue(duration: const Duration());
 
@@ -801,9 +809,15 @@ class BetterPlayerController {
         ),
       );
     }
+
     if (currentVideoPlayerValue.initialized && !_hasCurrentDataSourceInitialized) {
       _hasCurrentDataSourceInitialized = true;
       _postEvent(BetterPlayerEvent(BetterPlayerEventType.initialized));
+
+      if (betterPlayerRestartTvConfiguration != null && fullscreenState) {
+        Future.delayed(const Duration(milliseconds: 250));
+        enterFullScreen();
+      }
     }
     if (currentVideoPlayerValue.isPip) {
       _isPip = true;
