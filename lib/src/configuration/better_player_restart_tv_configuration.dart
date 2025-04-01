@@ -6,6 +6,7 @@ class BetterPlayerRestartTvConfiguration {
   final Color? activeLiveColor;
   final Color? inactiveLiveColor;
   final String? liveButtonText;
+  final Future<bool> getFullscreenState;
   final Function()? onRestartTvPressed;
   final Function()? onLiveTvPressed;
 
@@ -15,6 +16,7 @@ class BetterPlayerRestartTvConfiguration {
     required this.activeLiveColor,
     required this.inactiveLiveColor,
     required this.liveButtonText,
+    required this.getFullscreenState,
     this.onRestartTvPressed,
     this.onLiveTvPressed,
   });
