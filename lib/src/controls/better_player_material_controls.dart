@@ -303,10 +303,15 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                   else
                     const SizedBox(),
                   if (betterPlayerController?.betterPlayerConfiguration.videoTitleText != null &&
-                      betterPlayerController!.isFullScreen)
+                      betterPlayerController!.isFullScreen &&
+                      !betterPlayerController!.isLiveStream())
                     Expanded(flex: 4, child: _buildVideoTitle()),
+                  if (betterPlayerController?.betterPlayerConfiguration.videoTitleText != null &&
+                      betterPlayerController!.isFullScreen &&
+                      betterPlayerController!.isLiveStream())
+                    _buildVideoTitle(),
                   if (betterPlayerController!.betterPlayerRestartTvConfiguration != null)
-                    _buildIsLiveButton(_controller!),
+                    Expanded(child: _buildIsLiveButton(_controller!)),
                   _controlsConfiguration.enableProgressText
                       ? Expanded(flex: 6, child: _buildPosition())
                       : const SizedBox(),
