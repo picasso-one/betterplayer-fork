@@ -34,8 +34,11 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget> extends State
 
   void skipBack() {
     if (latestValue != null) {
+      print("WindowValue=> ${latestValue?.absolutePosition}");
       cancelAndRestartTimer();
       final beginning = const Duration().inMilliseconds;
+      final absolutePositionDuration =
+          latestValue!.absolutePosition?.difference(DateTime.fromMillisecondsSinceEpoch(0));
       final skip = (latestValue!.position -
               Duration(milliseconds: betterPlayerControlsConfiguration.backwardSkipTimeInMilliseconds))
           .inMilliseconds;

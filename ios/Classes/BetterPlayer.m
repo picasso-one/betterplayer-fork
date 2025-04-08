@@ -507,7 +507,14 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (int64_t)absolutePosition {
-    return [BetterPlayerTimeUtils FLTNSTimeIntervalToMillis:([[[_player currentItem] currentDate] timeIntervalSince1970])];
+    // return [BetterPlayerTimeUtils FLTNSTimeIntervalToMillis:([[[_player currentItem] currentDate] timeIntervalSince1970])];
+     // Get the current time from the AVPlayer
+    CMTime currentTime = [[_player currentItem] currentTime];
+    
+    // Convert the CMTime (which is in seconds) to milliseconds
+    int64_t millis = CMTimeGetSeconds(currentTime) * 1000;
+    
+    return millis;
 }
 
 - (int64_t)duration {

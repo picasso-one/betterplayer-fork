@@ -38,6 +38,7 @@ class VideoPlayerValue {
     this.size,
     this.position = const Duration(),
     this.absolutePosition,
+    this.windowStartPosition,
     this.buffered = const <DurationRange>[],
     this.isPlaying = false,
     this.isLooping = false,
@@ -52,8 +53,7 @@ class VideoPlayerValue {
 
   /// Returns an instance with a `null` [Duration] and the given
   /// [errorDescription].
-  VideoPlayerValue.erroneous(String errorDescription)
-      : this(duration: null, errorDescription: errorDescription);
+  VideoPlayerValue.erroneous(String errorDescription) : this(duration: null, errorDescription: errorDescription);
 
   /// The total duration of the video.
   ///
@@ -67,6 +67,8 @@ class VideoPlayerValue {
   ///
   /// Is null when is not available.
   final DateTime? absolutePosition;
+
+  final DateTime? windowStartPosition;
 
   /// The currently buffered ranges.
   final List<DurationRange> buffered;
@@ -123,6 +125,7 @@ class VideoPlayerValue {
     Size? size,
     Duration? position,
     DateTime? absolutePosition,
+    DateTime? windowStartPosition,
     List<DurationRange>? buffered,
     bool? isPlaying,
     bool? isLooping,
@@ -136,6 +139,7 @@ class VideoPlayerValue {
       size: size ?? this.size,
       position: position ?? this.position,
       absolutePosition: absolutePosition ?? this.absolutePosition,
+      windowStartPosition: windowStartPosition ?? this.windowStartPosition,
       buffered: buffered ?? this.buffered,
       isPlaying: isPlaying ?? this.isPlaying,
       isLooping: isLooping ?? this.isLooping,
@@ -185,8 +189,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     }
   }
 
-  final StreamController<VideoEvent> videoEventStreamController =
-      StreamController.broadcast();
+  final StreamController<VideoEvent> videoEventStreamController = StreamController.broadcast();
   final Completer<void> _creatingCompleter = Completer<void>();
   int? _textureId;
 
@@ -276,9 +279,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       }
     }
 
-    _eventSubscription = _videoPlayerPlatform
-        .videoEventsFor(_textureId)
-        .listen(eventListener, onError: errorListener);
+    _eventSubscription = _videoPlayerPlatform.videoEventsFor(_textureId).listen(eventListener, onError: errorListener);
   }
 
   /// Set data source for playing a video from an asset.
@@ -412,8 +413,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
 
     _initializingCompleter = Completer<void>();
 
-    await VideoPlayerPlatform.instance
-        .setDataSource(_textureId, dataSourceDescription);
+    await VideoPlayerPlatform.instance.setDataSource(_textureId, dataSourceDescription);
     return _initializingCompleter.future;
   }
 
@@ -477,14 +477,15 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           }
           final Duration? newPosition = await position;
           final DateTime? newAbsolutePosition = await absolutePosition;
+          final DateTime? newWindowStartPosition = await windowStartPosition;
           // ignore: invariant_booleans
           if (_isDisposed) {
             return;
           }
-          _updatePosition(newPosition, absolutePosition: newAbsolutePosition);
+          _updatePosition(newPosition,
+              absolutePosition: newAbsolutePosition, windowStartPosition: newWindowStartPosition);
           if (_seekPosition != null && newPosition != null) {
-            final difference =
-                newPosition.inMilliseconds - _seekPosition!.inMilliseconds;
+            final difference = newPosition.inMilliseconds - _seekPosition!.inMilliseconds;
             if (difference > 0) {
               _seekPosition = null;
             }
@@ -525,6 +526,13 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       return null;
     }
     return _videoPlayerPlatform.getAbsolutePosition(_textureId);
+  }
+
+  Future<DateTime?> get windowStartPosition async {
+    if (!value.initialized && _isDisposed) {
+      return null;
+    }
+    return _videoPlayerPlatform.getWindowStartPosition(_textureId);
   }
 
   /// Sets the video's current timestamp to be at [moment]. The next
@@ -593,8 +601,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// [bitrate] specifies bitrate of the selected track
   Future<void> setTrackParameters(int? width, int? height, int? bitrate) async {
     try {
-      await _videoPlayerPlatform.setTrackParameters(
-          _textureId, width, height, bitrate);
+      await _videoPlayerPlatform.setTrackParameters(_textureId, width, height, bitrate);
     } catch (e) {
       // no op, just to catch strange crashes
       // when async communication with platform fails
@@ -602,18 +609,16 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     }
   }
 
-  Future<void> enablePictureInPicture(
-      {double? top, double? left, double? width, double? height}) async {
-    await _videoPlayerPlatform.enablePictureInPicture(
-        textureId, top, left, width, height);
+  Future<void> enablePictureInPicture({double? top, double? left, double? width, double? height}) async {
+    await _videoPlayerPlatform.enablePictureInPicture(textureId, top, left, width, height);
   }
 
   Future<void> disablePictureInPicture() async {
     await _videoPlayerPlatform.disablePictureInPicture(textureId);
   }
 
-  void _updatePosition(Duration? position, {DateTime? absolutePosition}) {
-    value = value.copyWith(position: _seekPosition ?? position);
+  void _updatePosition(Duration? position, {DateTime? absolutePosition, DateTime? windowStartPosition}) {
+    value = value.copyWith(position: _seekPosition ?? position, windowStartPosition: windowStartPosition);
     if (_seekPosition == null) {
       value = value.copyWith(absolutePosition: absolutePosition);
     }
@@ -704,9 +709,7 @@ class _VideoPlayerState extends State<VideoPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    return _textureId == null
-        ? Container()
-        : _videoPlayerPlatform.buildView(_textureId);
+    return _textureId == null ? Container() : _videoPlayerPlatform.buildView(_textureId);
   }
 }
 
