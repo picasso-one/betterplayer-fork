@@ -303,10 +303,15 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                   else
                     const SizedBox(),
                   if (betterPlayerController?.betterPlayerConfiguration.videoTitleText != null &&
-                      betterPlayerController!.isFullScreen)
+                      betterPlayerController!.isFullScreen &&
+                      !betterPlayerController!.isLiveStream())
                     Expanded(flex: 4, child: _buildVideoTitle()),
+                  if (betterPlayerController?.betterPlayerConfiguration.videoTitleText != null &&
+                      betterPlayerController!.isFullScreen &&
+                      betterPlayerController!.isLiveStream())
+                    _buildVideoTitle(),
                   if (betterPlayerController!.betterPlayerRestartTvConfiguration != null)
-                    _buildIsLiveButton(_controller!),
+                    Expanded(child: _buildIsLiveButton(_controller!)),
                   _controlsConfiguration.enableProgressText
                       ? Expanded(flex: 6, child: _buildPosition())
                       : const SizedBox(),
@@ -401,16 +406,31 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
       );
 
   Widget _modernControlRow() => Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: betterPlayerController!.isFullScreen
+            ? MainAxisAlignment.center
+            : betterPlayerController!.betterPlayerRestartTvConfiguration != null &&
+                    betterPlayerController!.isLiveStream()
+                ? MainAxisAlignment.start
+                : MainAxisAlignment.center,
         children: [
           if (betterPlayerController!.betterPlayerRestartTvConfiguration != null &&
               betterPlayerController!.isLiveStream())
-            _buildRestart(_controller!),
+            Padding(
+              padding: EdgeInsets.only(
+                left: betterPlayerController!.isFullScreen
+                    ? 0
+                    : betterPlayerController!.betterPlayerRestartTvConfiguration != null &&
+                            betterPlayerController!.isLiveStream()
+                        ? 24
+                        : 0,
+              ),
+              child: _buildRestart(_controller!),
+            ),
           if (_controlsConfiguration.enableSkips || betterPlayerController!.isLiveStream())
             _buildModernSkipButton()
           else
             const SizedBox(),
-          if (_controlsConfiguration.enablePlayPause) _buildModernReplayButton(_controller!),
+          if (_controlsConfiguration.enablePlayPause) Center(child: _buildModernReplayButton(_controller!)),
           if (_controlsConfiguration.enableSkips || betterPlayerController!.isLiveStream())
             _buildModernForwardButton()
           else
