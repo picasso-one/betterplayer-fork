@@ -206,10 +206,21 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                     if (_controlsConfiguration.showExitButton && !_controlsConfiguration.useModernDesignControls)
                       _buildExitButton()
                     else
-                      Padding(
-                        padding: const EdgeInsets.only(right: 24),
-                        child: _buildExpandButton(),
-                      ),
+                      !_controlsConfiguration.useModernDesignControls
+                          ? Padding(
+                              padding: const EdgeInsets.only(right: 24),
+                              child: _buildExpandButton(),
+                            )
+                          : betterPlayerController!.isLiveStream() ||
+                                  betterPlayerController!.betterPlayerRestartTvConfiguration != null
+                              ? Padding(
+                                  padding: const EdgeInsets.only(right: 24),
+                                  child: _buildExpandButton(),
+                                )
+                              : Padding(
+                                  padding: const EdgeInsets.only(right: 24),
+                                  child: SizedBox.shrink(),
+                                ),
                   ],
                 ),
               ),
