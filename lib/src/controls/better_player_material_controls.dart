@@ -315,11 +315,12 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                     const SizedBox(),
                   if (betterPlayerController?.betterPlayerConfiguration.videoTitleText != null &&
                       betterPlayerController!.isFullScreen &&
-                      !betterPlayerController!.isLiveStream())
+                      !betterPlayerController!.isLiveStream() &&
+                      betterPlayerController!.betterPlayerRestartTvConfiguration == null)
                     Expanded(flex: 4, child: _buildVideoTitle()),
                   if (betterPlayerController?.betterPlayerConfiguration.videoTitleText != null &&
                       betterPlayerController!.isFullScreen &&
-                      betterPlayerController!.isLiveStream())
+                      betterPlayerController!.betterPlayerRestartTvConfiguration != null)
                     _buildVideoTitle(),
                   if (betterPlayerController!.betterPlayerRestartTvConfiguration != null)
                     Expanded(child: _buildIsLiveButton(_controller!)),
@@ -777,6 +778,9 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
   }
 
   Widget _buildIsLiveButton(VideoPlayerController controller) {
+    final isLivePosition = controller.value.duration != null
+        ? controller.value.duration!.inMilliseconds - controller.value.position.inMilliseconds < 32000
+        : true;
     return BetterPlayerMaterialClickableWidget(
       key: const Key("better_player_material_controls_is_live_button"),
       onTap: () => betterPlayerController!.betterPlayerRestartTvConfiguration!.onLiveTvPressed?.call(),
@@ -788,7 +792,7 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
           children: [
             Icon(
               Icons.fiber_manual_record_rounded,
-              color: betterPlayerController!.isLiveStream()
+              color: betterPlayerController!.isLiveStream() && isLivePosition
                   ? betterPlayerController!.betterPlayerRestartTvConfiguration?.activeLiveColor
                   : betterPlayerController!.betterPlayerRestartTvConfiguration?.inactiveLiveColor,
               size: 6,
