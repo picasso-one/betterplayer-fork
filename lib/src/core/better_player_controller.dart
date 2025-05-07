@@ -5,6 +5,7 @@ import 'package:better_player/better_player.dart';
 import 'package:better_player/src/configuration/better_player_bitrate_configuration.dart';
 import 'package:better_player/src/configuration/better_player_controller_event.dart';
 import 'package:better_player/src/configuration/better_player_restart_tv_configuration.dart';
+import 'package:better_player/src/configuration/better_player_tv_channel_list_configuration.dart';
 import 'package:better_player/src/core/better_player_utils.dart';
 import 'package:better_player/src/subtitles/better_player_subtitle.dart';
 import 'package:better_player/src/subtitles/better_player_subtitles_factory.dart';
@@ -54,6 +55,8 @@ class BetterPlayerController {
   final BetterPLayerAirplayConfiguration? betterPLayerAirplayConfiguration;
 
   final BetterPlayerRestartTvConfiguration? betterPlayerRestartTvConfiguration;
+
+  final BetterPlayerTvChannelListConfiguration? betterPlayerTvChannelListConfiguration;
 
   ///Controls configuration
   BetterPlayerControlsConfiguration get betterPlayerControlsConfiguration => _betterPlayerControlsConfiguration;
@@ -243,6 +246,7 @@ class BetterPlayerController {
     this.betterPlayerRestartTvConfiguration,
     this.betterPLayerAirplayConfiguration,
     this.fullscreenOnGesture,
+    this.betterPlayerTvChannelListConfiguration,
     BetterPlayerDataSource? betterPlayerDataSource,
   }) : videoTitleText = ValueNotifier("") {
     this._betterPlayerControlsConfiguration = betterPlayerConfiguration.controlsConfiguration;

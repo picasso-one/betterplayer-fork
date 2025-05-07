@@ -17,11 +17,13 @@ class BetterPlayerMaterialControls extends StatefulWidget {
 
   ///Controls config
   final BetterPlayerControlsConfiguration controlsConfiguration;
+  final Function()? onChannelListPressed;
 
   const BetterPlayerMaterialControls({
     Key? key,
     required this.onControlsVisibilityChanged,
     required this.controlsConfiguration,
+    this.onChannelListPressed,
   }) : super(key: key);
 
   @override
@@ -425,6 +427,9 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                 ? MainAxisAlignment.start
                 : MainAxisAlignment.center,
         children: [
+          if (betterPlayerController?.betterPlayerTvChannelListConfiguration != null &&
+              betterPlayerController!.isFullScreen)
+            Expanded(child: SizedBox(width: 40)),
           if (betterPlayerController!.betterPlayerRestartTvConfiguration != null &&
               betterPlayerController!.isLiveStream())
             Padding(
@@ -447,6 +452,11 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
             _buildModernForwardButton()
           else
             const SizedBox(),
+          if (betterPlayerController?.betterPlayerTvChannelListConfiguration != null &&
+              betterPlayerController!.isFullScreen) ...[
+            Expanded(child: SizedBox(width: 40)),
+            _buildModernChannelListButton(_controller!),
+          ]
         ],
       );
 
@@ -607,6 +617,23 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
           } else {
             _onPlayPause();
           }
+        },
+      ),
+    );
+  }
+
+  Widget _buildModernChannelListButton(VideoPlayerController controller) {
+    return _BetterPlayerModerBackgroundButton(
+      size: 62,
+      horizontalPadding: 24.0,
+      child: _buildHitAreaClickableButton(
+        icon: Icon(
+          Icons.format_list_bulleted,
+          size: 42,
+          color: _controlsConfiguration.iconsColor,
+        ),
+        onClicked: () {
+          widget.onChannelListPressed?.call();
         },
       ),
     );
