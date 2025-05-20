@@ -153,7 +153,7 @@ class _BetterPlayerState extends State<BetterPlayer> with WidgetsBindingObserver
   Future<void> _startDurationCheckTimer() async {
     _durationCheckTimer?.cancel();
 
-    _durationCheckTimer = Timer(const Duration(seconds: 3), () async {
+    _durationCheckTimer = Timer(const Duration(seconds: 5), () async {
       final duration = widget.controller.videoPlayerController?.value.duration;
       final isBuffered = widget.controller.videoPlayerController?.value.buffered.isEmpty ?? false;
       if ((duration == null || isBuffered) && mounted) {
