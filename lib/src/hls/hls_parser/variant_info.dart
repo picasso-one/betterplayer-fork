@@ -39,8 +39,4 @@ class VariantInfo {
     }
     return false;
   }
-
-  @override
-  int get hashCode => hashValues(
-      bitrate, videoGroupId, audioGroupId, subtitleGroupId, captionGroupId);
 }

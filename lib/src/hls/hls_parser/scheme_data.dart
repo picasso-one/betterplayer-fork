@@ -47,12 +47,4 @@ class SchemeData {
 
     return false;
   }
-
-  @override
-  int get hashCode => hashValues(
-      /*uuid, */
-      licenseServerUrl,
-      mimeType,
-      data,
-      requiresSecureDecryption);
 }
