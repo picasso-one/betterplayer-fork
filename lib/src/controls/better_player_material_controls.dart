@@ -443,12 +443,16 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
               ),
               child: _buildRestart(_controller!),
             ),
-          if (_controlsConfiguration.enableSkips || betterPlayerController!.isLiveStream())
+          if (_controlsConfiguration.enableSkips ||
+              betterPlayerController!.isLiveStream() ||
+              !betterPlayerController!.isLiveStream())
             _buildModernSkipButton()
           else
             const SizedBox(),
           if (_controlsConfiguration.enablePlayPause) Center(child: _buildModernReplayButton(_controller!)),
-          if (_controlsConfiguration.enableSkips || betterPlayerController!.isLiveStream())
+          if (_controlsConfiguration.enableSkips ||
+              betterPlayerController!.isLiveStream() ||
+              !betterPlayerController!.isLiveStream())
             _buildModernForwardButton()
           else
             const SizedBox(),
@@ -823,9 +827,7 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
           children: [
             Icon(
               Icons.fiber_manual_record_rounded,
-              color: betterPlayerController!.isLiveStream() && isLivePosition
-                  ? betterPlayerController!.betterPlayerRestartTvConfiguration?.activeLiveColor
-                  : betterPlayerController!.betterPlayerRestartTvConfiguration?.inactiveLiveColor,
+              color: betterPlayerController!.betterPlayerRestartTvConfiguration?.activeLiveColor,
               size: 6,
             ),
             SizedBox(width: 8),
