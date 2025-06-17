@@ -58,6 +58,8 @@ class BetterPlayerController {
 
   final BetterPlayerTvChannelListConfiguration? betterPlayerTvChannelListConfiguration;
 
+  final BetterPlayerChromeCastConfiguration? betterPlayerChromeCastConfiguration;
+
   ///Controls configuration
   BetterPlayerControlsConfiguration get betterPlayerControlsConfiguration => _betterPlayerControlsConfiguration;
 
@@ -240,6 +242,7 @@ class BetterPlayerController {
     this.betterPlayerRestartTvConfiguration,
     this.betterPLayerAirplayConfiguration,
     this.betterPlayerTvChannelListConfiguration,
+    this.betterPlayerChromeCastConfiguration,
     BetterPlayerDataSource? betterPlayerDataSource,
   }) {
     this._betterPlayerControlsConfiguration = betterPlayerConfiguration.controlsConfiguration;
