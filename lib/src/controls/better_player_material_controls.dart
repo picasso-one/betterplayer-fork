@@ -449,7 +449,7 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
             _buildModernSkipButton()
           else
             const SizedBox(),
-          if (_controlsConfiguration.enablePlayPause) Center(child: _buildModernReplayButton(_controller!)),
+          Center(child: _buildModernReplayButton(_controller!)),
           if (_controlsConfiguration.enableSkips ||
               betterPlayerController!.isLiveStream() ||
               !betterPlayerController!.isLiveStream())
