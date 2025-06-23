@@ -606,8 +606,10 @@ class BetterPlayerController {
   void toggleFullScreen() {
     _isFullScreen = !_isFullScreen;
     if (_isFullScreen) {
+      _postEvent(BetterPlayerEvent(BetterPlayerEventType.openFullscreenWithButton));
       _postControllerEvent(BetterPlayerControllerEvent.openFullscreen);
     } else {
+      _postEvent(BetterPlayerEvent(BetterPlayerEventType.hideFullscreenWithButton));
       _postControllerEvent(BetterPlayerControllerEvent.hideFullscreen);
     }
   }

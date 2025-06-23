@@ -132,9 +132,11 @@ class _BetterPlayerState extends State<BetterPlayer>
   void onControllerEvent(BetterPlayerControllerEvent event) {
     switch (event) {
       case BetterPlayerControllerEvent.openFullscreen:
+        widget.controller.postEvent(BetterPlayerEvent(BetterPlayerEventType.openFullscreen));
         onFullScreenChanged();
         break;
       case BetterPlayerControllerEvent.hideFullscreen:
+        widget.controller.postEvent(BetterPlayerEvent(BetterPlayerEventType.hideFullscreen));
         onFullScreenChanged();
         break;
       default:
@@ -148,14 +150,10 @@ class _BetterPlayerState extends State<BetterPlayer>
     final controller = widget.controller;
     if (controller.isFullScreen && !_isFullScreen) {
       _isFullScreen = true;
-      controller
-          .postEvent(BetterPlayerEvent(BetterPlayerEventType.openFullscreen));
       await _pushFullScreenWidget(context);
     } else if (_isFullScreen) {
       Navigator.of(context, rootNavigator: true).pop();
       _isFullScreen = false;
-      controller
-          .postEvent(BetterPlayerEvent(BetterPlayerEventType.hideFullscreen));
     }
   }
 
