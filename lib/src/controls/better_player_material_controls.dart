@@ -9,6 +9,7 @@ import 'package:better_player/src/video_player/video_player.dart';
 import 'package:flutter/foundation.dart';
 // Flutter imports:
 import 'package:flutter/material.dart';
+import 'package:flutter_cast_video/flutter_cast_video.dart';
 import 'package:flutter_to_airplay/flutter_to_airplay.dart';
 
 class BetterPlayerMaterialControls extends StatefulWidget {
@@ -43,6 +44,10 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
   VideoPlayerController? _controller;
   BetterPlayerController? _betterPlayerController;
   StreamSubscription? _controlsVisibilityStreamSubscription;
+  late ChromeCastController _chromeCastController;
+  AppState _state = AppState.idle;
+  bool _playing = false;
+  Map<dynamic, dynamic> _mediaInfo = {};
 
   BetterPlayerControlsConfiguration get _controlsConfiguration => widget.controlsConfiguration;
 
@@ -200,6 +205,9 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                     const Spacer(),
                     if (defaultTargetPlatform == TargetPlatform.iOS && _controlsConfiguration.useModernDesignControls)
                       _buildAirplayButton(),
+                    if (defaultTargetPlatform == TargetPlatform.android &&
+                        _controlsConfiguration.useModernDesignControls)
+                      _buildChromeCastButton(),
                     if (_controlsConfiguration.enablePip)
                       _buildPipButtonWrapperWidget(controlsNotVisible, _onPlayerHide)
                     else
@@ -332,6 +340,8 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                   const Spacer(),
                   if (defaultTargetPlatform == TargetPlatform.iOS && !_controlsConfiguration.useModernDesignControls)
                     _buildAirplayButton(),
+                  if (defaultTargetPlatform == TargetPlatform.android && _controlsConfiguration.useModernDesignControls)
+                    _buildChromeCastButton(),
                   if (_controlsConfiguration.enableMute) _buildMuteButton(_controller) else const SizedBox(),
                   if (_controlsConfiguration.useModernDesignControls)
                     Padding(
@@ -740,6 +750,41 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
     );
   }
 
+  Widget _buildChromeCastButton() {
+    return BetterPlayerMaterialClickableWidget(
+      onTap: () {
+        onShowChromeCastDevices();
+      },
+      child: Padding(
+        padding: EdgeInsets.all(_controlsConfiguration.useModernDesignControls ? 0 : 8),
+        child: Icon(
+          Icons.cast,
+          color: _controlsConfiguration.iconsColor,
+        ),
+      ),
+    );
+
+    // return AnimatedOpacity(
+    //   opacity: controlsNotVisible ? 0.0 : 1.0,
+    //   duration: _controlsConfiguration.controlsHideTime,
+    //   child: Padding(
+    //     padding: const EdgeInsets.only(right: 12),
+    //     child: SizedBox(
+    //       height: airplayConfig?.airplayButtonSize,
+    //       width: airplayConfig?.airplayButtonSize,
+    //       child: IconButton(
+    //         onPressed: () => onShowChromeCastDevices(),
+    //         icon: Icon(
+    //           Icons.cast,
+    //           color: Colors.white,
+    //           size: 24.0,
+    //         ),
+    //       ),
+    //     ),
+    //   ),
+    // );
+  }
+
   Widget _buildMuteButton(
     VideoPlayerController? controller,
   ) {
@@ -1069,3 +1114,5 @@ class _BetterPlayerModerBackgroundButton extends StatelessWidget {
     );
   }
 }
+
+enum AppState { idle, connected, mediaLoaded, error }

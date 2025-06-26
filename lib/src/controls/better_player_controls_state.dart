@@ -58,6 +58,20 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget> extends State
     _showModalBottomSheet([_buildMoreOptionsList()]);
   }
 
+  void onShowChromeCastDevices() {
+    _showModalBottomSheet(
+      [
+        SizedBox(
+          width: double.infinity,
+          height: 200,
+          child: betterPlayerController?.betterPlayerChromeCastConfiguration != null
+              ? betterPlayerController!.betterPlayerChromeCastConfiguration!.chromeCastListDevices
+              : SizedBox.shrink(),
+        )
+      ],
+    );
+  }
+
   Widget _buildMoreOptionsList() {
     final translations = betterPlayerController!.translations;
     return SingleChildScrollView(
