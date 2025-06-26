@@ -45,7 +45,9 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
   BetterPlayerController? _betterPlayerController;
   StreamSubscription? _controlsVisibilityStreamSubscription;
   late ChromeCastController _chromeCastController;
-  AppState appState = AppState.idle;
+  AppState _state = AppState.idle;
+  bool _playing = false;
+  Map<dynamic, dynamic> _mediaInfo = {};
 
   BetterPlayerControlsConfiguration get _controlsConfiguration => widget.controlsConfiguration;
 
@@ -753,60 +755,39 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
   }
 
   Widget _buildChromeCastButton() {
-    final airplayConfig = _betterPlayerController?.betterPLayerAirplayConfiguration;
-
-    return AnimatedOpacity(
-      opacity: controlsNotVisible ? 0.0 : 1.0,
-      duration: _controlsConfiguration.controlsHideTime,
+    return BetterPlayerMaterialClickableWidget(
+      onTap: () {
+        onShowChromeCastDevices();
+      },
       child: Padding(
-        padding: const EdgeInsets.only(right: 12),
-        child: SizedBox(
-            height: airplayConfig?.airplayButtonSize,
-            width: airplayConfig?.airplayButtonSize,
-            child: ChromeCastButton(
-              color: Colors.white,
-              size: 24.0,
-              onButtonCreated: _onButtonCreated,
-              onSessionStarted: _onSessionStarted,
-              onSessionEnded: () {},
-              onRequestCompleted: () {},
-            )
-            // IconButton(
-            //   onPressed: () {},
-            //   icon: Icon(
-            //     Icons.cast,
-            //     color: airplayConfig?.airplayButtonColor,
-            //     size: airplayConfig?.airplayButtonSize,
-            //   ),
-            // ),
-            ),
+        padding: EdgeInsets.all(_controlsConfiguration.useModernDesignControls ? 0 : 8),
+        child: Icon(
+          Icons.cast,
+          color: _controlsConfiguration.iconsColor,
+        ),
       ),
     );
-  }
 
-  Future<void> _onButtonCreated(ChromeCastController chromeController) async {
-    _chromeCastController = chromeController;
-    await _chromeCastController.addSessionListener();
+    // return AnimatedOpacity(
+    //   opacity: controlsNotVisible ? 0.0 : 1.0,
+    //   duration: _controlsConfiguration.controlsHideTime,
+    //   child: Padding(
+    //     padding: const EdgeInsets.only(right: 12),
+    //     child: SizedBox(
+    //       height: airplayConfig?.airplayButtonSize,
+    //       width: airplayConfig?.airplayButtonSize,
+    //       child: IconButton(
+    //         onPressed: () => onShowChromeCastDevices(),
+    //         icon: Icon(
+    //           Icons.cast,
+    //           color: Colors.white,
+    //           size: 24.0,
+    //         ),
+    //       ),
+    //     ),
+    //   ),
+    // );
   }
-
-  Future<void> _onSessionStarted() async {
-    // setState(() => _state = AppState.connected);
-    await _chromeCastController.loadMedia(betterPlayerController!.betterPlayerDataSource!.url,
-        title: "TestTitle",
-        subtitle: "test Sub title",
-        image: "https://smaller-pictures.appspot.com/images/dreamstime_xxl_65780868_small.jpg");
-  }
-
-  // void _startCasting() {
-  //   CastVideo.castMedia(
-  //     url: url.toString(),
-  //     title: title,
-  //     image: image,
-  //     live: isLive,
-  //     position: position.inMilliseconds,
-  //     contentType: _contentType,
-  //   );
-  // }
 
   Widget _buildMuteButton(
     VideoPlayerController? controller,

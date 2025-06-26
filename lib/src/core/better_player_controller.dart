@@ -58,6 +58,8 @@ class BetterPlayerController {
 
   final BetterPlayerTvChannelListConfiguration? betterPlayerTvChannelListConfiguration;
 
+  final BetterPlayerChromeCastConfiguration? betterPlayerChromeCastConfiguration;
+
   ///Controls configuration
   BetterPlayerControlsConfiguration get betterPlayerControlsConfiguration => _betterPlayerControlsConfiguration;
 
@@ -247,6 +249,7 @@ class BetterPlayerController {
     this.betterPLayerAirplayConfiguration,
     this.fullscreenOnGesture,
     this.betterPlayerTvChannelListConfiguration,
+    this.betterPlayerChromeCastConfiguration,
     BetterPlayerDataSource? betterPlayerDataSource,
   }) : videoTitleText = ValueNotifier("") {
     this._betterPlayerControlsConfiguration = betterPlayerConfiguration.controlsConfiguration;
