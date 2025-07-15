@@ -89,10 +89,11 @@ packages:
   flutter_cast_video:
     dependency: "direct main"
     description:
-      name: flutter_cast_video
-      sha256: e0c7dbd1dbd58b1ebea184ad4bcb2bc430d7173948114e0793e68b7a20db9987
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: main
+      resolved-ref: "42a085471428df948b6796bb833c6396166272de"
+      url: "https://github.com/arash-flutter/flutter_cast_video.git"
+    source: git
     version: "1.2.0"
   flutter_localizations:
     dependency: "direct dev"
