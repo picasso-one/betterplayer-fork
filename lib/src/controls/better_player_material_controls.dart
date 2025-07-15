@@ -92,6 +92,17 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
           BetterPlayerMultipleGestureDetector.of(context)!.onLongPress?.call();
         }
       },
+      onHorizontalDragEnd: (details) {
+        if (details.primaryVelocity != null) {
+          if (details.primaryVelocity! < 0) {
+            if (betterPlayerController!.isFullScreen)
+              betterPlayerController?.betterPlayerSwipeConfiguration?.onSwipeRight.call();
+          } else if (details.primaryVelocity! > 0) {
+            if (betterPlayerController!.isFullScreen)
+              betterPlayerController?.betterPlayerSwipeConfiguration?.onSwipeLeft.call();
+          }
+        }
+      },
       child: AbsorbPointer(
         absorbing: controlsNotVisible,
         child: Stack(

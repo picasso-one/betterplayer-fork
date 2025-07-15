@@ -93,7 +93,7 @@ class BetterPlayerDashUtils {
   static BetterPlayerAsmsSubtitle? parseSubtitle(String masterPlaylistUrl, XmlElement node) {
     String? url = node.getElement('Representation')?.getElement('BaseURL')?.text;
 
-    if (url == null || url.isEmpty) return null;
+    if (url!.isEmpty) return null;
 
     final String segmentAlignmentStr = node.getAttribute('segmentAlignment') ?? '';
     String? name = node.getAttribute('label');
