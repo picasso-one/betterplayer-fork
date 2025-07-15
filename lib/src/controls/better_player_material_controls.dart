@@ -459,7 +459,7 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                     ? 0
                     : betterPlayerController!.betterPlayerRestartTvConfiguration != null &&
                             betterPlayerController!.isLiveStream()
-                        ? 32
+                        ? 28
                         : 0,
               ),
               child: _buildRestart(_controller!),
@@ -521,7 +521,7 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
 
   Widget _buildModernSkipButton() {
     return Padding(
-      padding: const EdgeInsets.only(left: 24),
+      padding: const EdgeInsets.only(left: 16),
       child: _BetterPlayerModerBackgroundButton(
         size: 48,
         child: _buildHitAreaClickableButton(
@@ -614,7 +614,7 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
     final bool isFinished = isVideoFinished(_latestValue);
     return _BetterPlayerModerBackgroundButton(
       size: 62,
-      horizontalPadding: 24.0,
+      horizontalPadding: 16.0,
       child: _buildHitAreaClickableButton(
         icon: isFinished
             ? Icon(
