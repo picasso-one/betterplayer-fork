@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import 'better_player_controller.dart';
+
 ///Widget which uses provided controller to render video player.
 class BetterPlayer extends StatefulWidget {
   const BetterPlayer({
@@ -47,6 +49,8 @@ class BetterPlayer extends StatefulWidget {
 class _BetterPlayerState extends State<BetterPlayer> with WidgetsBindingObserver {
   BetterPlayerConfiguration get _betterPlayerConfiguration => widget.controller.betterPlayerConfiguration;
 
+  BetterPlayerController get _controller => widget.controller;
+
   bool _isFullScreen = false;
 
   ///State of navigator on widget created
@@ -61,6 +65,8 @@ class _BetterPlayerState extends State<BetterPlayer> with WidgetsBindingObserver
   Timer? _durationCheckTimer;
 
   bool isVideoContent = true;
+
+  String? _lastUrl;
 
   @override
   void initState() {
@@ -130,6 +136,9 @@ class _BetterPlayerState extends State<BetterPlayer> with WidgetsBindingObserver
       _controllerEventSubscription?.cancel();
       _controllerEventSubscription = widget.controller.controllerEventStream.listen(onControllerEvent);
     }
+    if (_lastUrl != null && _lastUrl != _controller.betterPlayerDataSource?.url) {
+      _startDurationCheckTimer();
+    }
     super.didUpdateWidget(oldWidget);
   }
 
@@ -151,8 +160,12 @@ class _BetterPlayerState extends State<BetterPlayer> with WidgetsBindingObserver
   }
 
   Future<void> _startDurationCheckTimer() async {
+    if (_lastUrl == _controller.betterPlayerDataSource?.url) {
+      return Future.value();
+    }
     _durationCheckTimer?.cancel();
-
+    isVideoContent = true;
+    _lastUrl = _controller.betterPlayerDataSource?.url;
     _durationCheckTimer = Timer(const Duration(seconds: 5), () async {
       final duration = widget.controller.videoPlayerController?.value.duration;
       final isBuffered = widget.controller.videoPlayerController?.value.buffered.isEmpty ?? false;

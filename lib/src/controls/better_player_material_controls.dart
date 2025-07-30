@@ -852,9 +852,6 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
     return BetterPlayerMaterialClickableWidget(
       key: const Key("better_player_material_controls_restart_button"),
       onTap: () {
-        if (betterPlayerController!.isFullScreen) {
-          _betterPlayerController!.exitFullScreen();
-        }
         betterPlayerController!.betterPlayerRestartTvConfiguration!.onRestartTvPressed?.call();
       },
       child: _BetterPlayerModerBackgroundButton(

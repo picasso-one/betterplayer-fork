@@ -29,7 +29,7 @@ class BetterPlayerController {
   static const String _authorizationHeader = "Authorization";
 
   ///General configuration used in controller instance.
-  final BetterPlayerConfiguration betterPlayerConfiguration;
+  BetterPlayerConfiguration betterPlayerConfiguration;
 
   ///Playlist configuration used in controller instance.
   final BetterPlayerPlaylistConfiguration? betterPlayerPlaylistConfiguration;
@@ -50,18 +50,18 @@ class BetterPlayerController {
   ///Controls configuration
   late BetterPlayerControlsConfiguration _betterPlayerControlsConfiguration;
 
-  final BetterPlayerPlayNextVideoConfiguration? betterPlayerPlayNextVideoConfiguration;
-  final BetterPlayerSkipIntroConfiguration? betterPlayerSkipIntroConfiguration;
+  BetterPlayerPlayNextVideoConfiguration? betterPlayerPlayNextVideoConfiguration;
+  BetterPlayerSkipIntroConfiguration? betterPlayerSkipIntroConfiguration;
 
   final BetterPLayerAirplayConfiguration? betterPLayerAirplayConfiguration;
 
-  final BetterPlayerRestartTvConfiguration? betterPlayerRestartTvConfiguration;
+  BetterPlayerRestartTvConfiguration? betterPlayerRestartTvConfiguration;
 
   final BetterPlayerSwipeConfiguration? betterPlayerSwipeConfiguration;
 
-  final BetterPlayerTvChannelListConfiguration? betterPlayerTvChannelListConfiguration;
+  BetterPlayerTvChannelListConfiguration? betterPlayerTvChannelListConfiguration;
 
-  final BetterPlayerChromeCastConfiguration? betterPlayerChromeCastConfiguration;
+  BetterPlayerChromeCastConfiguration? betterPlayerChromeCastConfiguration;
 
   ///Controls configuration
   BetterPlayerControlsConfiguration get betterPlayerControlsConfiguration => _betterPlayerControlsConfiguration;
