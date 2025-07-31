@@ -171,10 +171,13 @@ class _BetterPlayerState extends State<BetterPlayer>
       BetterPlayerControllerProvider controllerProvider) {
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      body: Container(
-        alignment: Alignment.center,
-        color: Colors.black,
-        child: controllerProvider,
+      body: GestureDetector(
+        onVerticalDragEnd: (details) => widget.controller.fullscreenOnGesture != null ? widget.controller.fullscreenOnGesture!(widget.controller, details.velocity.pixelsPerSecond.dy > 0) : null,
+        child: Container(
+          alignment: Alignment.center,
+          color: Colors.black,
+          child: controllerProvider,
+        ),
       ),
     );
   }

@@ -64,6 +64,9 @@ class BetterPlayerController {
   /// Defines a event listener where video player events will be send.
   Function(BetterPlayerEvent)? get eventListener => betterPlayerConfiguration.eventListener;
 
+  /// Action handler for onVerticalDragEnd gesture 
+  Future<BetterPlayerDataSource> Function(BetterPlayerController controller, bool toTop)? fullscreenOnGesture;
+
   ///Flag used to store full screen mode state.
   bool _isFullScreen = false;
 
@@ -88,6 +91,9 @@ class BetterPlayerController {
 
   ///Currently used data source in player.
   BetterPlayerDataSource? _betterPlayerDataSource;
+
+  //Title of a video
+  final ValueNotifier<String> videoTitleText;
 
   ///Currently used data source in player.
   BetterPlayerDataSource? get betterPlayerDataSource => _betterPlayerDataSource;
@@ -236,9 +242,11 @@ class BetterPlayerController {
     this.betterPlayerSkipIntroConfiguration,
     this.betterPlayerRestartTvConfiguration,
     this.betterPLayerAirplayConfiguration,
+    this.fullscreenOnGesture,
     BetterPlayerDataSource? betterPlayerDataSource,
-  }) {
+  }) : videoTitleText = ValueNotifier("") {
     this._betterPlayerControlsConfiguration = betterPlayerConfiguration.controlsConfiguration;
+    this.fullscreenOnGesture != null ? addOnFullscreenGesture(this.fullscreenOnGesture!) : null;
     _eventListeners.add(eventListener);
     if (betterPlayerDataSource != null) {
       setupDataSource(betterPlayerDataSource);
@@ -291,6 +299,8 @@ class BetterPlayerController {
     ///Process data source
     await _setupDataSource(betterPlayerDataSource);
   }
+
+  void setVideoTitle(String title) => videoTitleText.value = title;
 
   ///Configure subtitles based on subtitles source.
   void _setupSubtitles() {
@@ -895,6 +905,10 @@ class BetterPlayerController {
   ///Add event listener which listens to player events.
   void addEventsListener(Function(BetterPlayerEvent) eventListener) {
     _eventListeners.add(eventListener);
+  }
+
+  void addOnFullscreenGesture(Future<BetterPlayerDataSource> Function(BetterPlayerController configuration, bool isBottom) function) {
+    fullscreenOnGesture = (configuration, toTop) async => function(this, toTop);
   }
 
   ///Remove event listener. This method should be called once you're disposing

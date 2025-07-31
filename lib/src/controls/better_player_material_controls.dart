@@ -302,11 +302,11 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                     _buildPlayPause(_controller!)
                   else
                     const SizedBox(),
-                  if (betterPlayerController?.betterPlayerConfiguration.videoTitleText != null &&
+                  if (betterPlayerController?.videoTitleText != null &&
                       betterPlayerController!.isFullScreen &&
                       !betterPlayerController!.isLiveStream())
                     Expanded(flex: 4, child: _buildVideoTitle()),
-                  if (betterPlayerController?.betterPlayerConfiguration.videoTitleText != null &&
+                  if (betterPlayerController?.videoTitleText != null &&
                       betterPlayerController!.isFullScreen &&
                       betterPlayerController!.isLiveStream())
                     _buildVideoTitle(),
@@ -636,23 +636,27 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
   }
 
   Widget _buildVideoTitle() {
-    final videoTitle = _betterPlayerController?.betterPlayerConfiguration.videoTitleText ?? '';
 
-    return AnimatedOpacity(
-      opacity: controlsNotVisible ? 0.0 : 1.0,
-      duration: _controlsConfiguration.controlsHideTime,
-      child: Padding(
-        padding: EdgeInsets.only(
-          right: 16,
-          left: !_controlsConfiguration.enablePlayPause || _controlsConfiguration.useModernDesignControls ? 16 : 0,
-        ),
-        child: Text(
-          videoTitle,
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
-        ),
-      ),
+    return ValueListenableBuilder<String>(
+      valueListenable: _betterPlayerController?.videoTitleText ?? ValueNotifier(""),
+      builder: (context, videoTitle, _) {
+        return AnimatedOpacity(
+          opacity: controlsNotVisible ? 0.0 : 1.0,
+          duration: _controlsConfiguration.controlsHideTime,
+          child: Padding(
+            padding: EdgeInsets.only(
+              right: 16,
+              left: !_controlsConfiguration.enablePlayPause || _controlsConfiguration.useModernDesignControls ? 16 : 0,
+            ),
+            child: Text(
+              videoTitle,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+            ),
+          ),
+        );
+      }
     );
   }
 
