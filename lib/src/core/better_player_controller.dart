@@ -869,6 +869,7 @@ class BetterPlayerController {
   }
 
   void _displayPlayNextButton(VideoPlayerValue currentVideoPlayerValue) {
+    bool actionDone = false;
     if (betterPlayerPlayNextVideoConfiguration != null && videoPlayerController?.value.duration != null) {
       if ((currentVideoPlayerValue.position.inMilliseconds >=
               (videoPlayerController!.value.duration!.inMilliseconds -
@@ -877,13 +878,18 @@ class BetterPlayerController {
               (videoPlayerController!.value.duration!.inMilliseconds -
                   betterPlayerPlayNextVideoConfiguration!.showBeforeEndMillis +
                   betterPlayerPlayNextVideoConfiguration!.autoSwitchToNextMillis)) {
+        actionDone = true;
         showNextVideoButton();
       } else if (currentVideoPlayerValue.position.inMilliseconds >
           (videoPlayerController!.value.duration!.inMilliseconds -
               betterPlayerPlayNextVideoConfiguration!.showBeforeEndMillis +
               betterPlayerPlayNextVideoConfiguration!.autoSwitchToNextMillis)) {
+        actionDone = true;
         hideNextVideoButton();
       }
+    }
+    if (!actionDone) {
+      _showNextVideoButton = false;
     }
   }
 
