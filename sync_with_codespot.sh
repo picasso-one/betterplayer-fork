@@ -15,6 +15,7 @@ then
     else
         SUBJECT="$SUBJECT_POSITIVE"
     fi
+    BODY="$BODY - $(hostname)"
     sendemail \
         -f "$FROM_EMAIL" \
         -t "$TO_EMAIL" \
