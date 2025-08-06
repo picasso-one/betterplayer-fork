@@ -1,17 +1,20 @@
 
-git fetch codespot
-git update-ref refs/heads/develop codespot/develop
-git pull codespot develop
-if [ $? -eq 0 ]
-then
-    git push origin develop
-fi
-
-if [ $? -ne 0 ]
+git fetch codespot develop
+CODESPOT_HASH=$(git rev-parse codespot/develop)
+ORIGIN_HASH=$(git rev-parse develop)
+if [ "$CODESPOT_HASH" != "$ORIGIN_HASH" ]
 then
     set -a
     source sync.env
     set +a
+    git update-ref refs/heads/develop codespot/develop
+    git push origin develop
+    if [ $? -ne 0 ]
+    then
+        SUBJECT="$SUBJECT_NEGATIVE"
+    else
+        SUBJECT="$SUBJECT_POSITIVE"
+    fi
     sendemail \
         -f "$FROM_EMAIL" \
         -t "$TO_EMAIL" \
