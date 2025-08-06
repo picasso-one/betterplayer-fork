@@ -78,3 +78,5 @@ build/
 # FVM Version Cache
 .fvm/*
 .fvmrc
+
+*.env
