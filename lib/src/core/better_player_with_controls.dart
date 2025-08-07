@@ -216,18 +216,18 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
   }
 
   double _progressPlayNextVideo(BetterPlayerController betterPlayerController) {
-    final currentPosition = betterPlayerController.videoPlayerController!.value.position.inMilliseconds;
-    final timeEndVideo = betterPlayerController.videoPlayerController!.value.duration!.inMilliseconds;
+    final videoController = betterPlayerController.videoPlayerController;
+    if (!(videoController?.value.initialized ?? false)) {
+      return 0.0;
+    }
+
+    final currentPosition = videoController!.value.position.inMilliseconds;
+    final timeEndVideo = videoController!.value.duration!.inMilliseconds;
     final showBeforeEndMillis =
         timeEndVideo - betterPlayerController.betterPlayerPlayNextVideoConfiguration!.showBeforeEndMillis;
     final hidePlayNextButton = timeEndVideo -
         betterPlayerController.betterPlayerPlayNextVideoConfiguration!.showBeforeEndMillis +
         betterPlayerController.betterPlayerPlayNextVideoConfiguration!.autoSwitchToNextMillis;
-    final videoController = betterPlayerController.videoPlayerController;
-
-    if (!(videoController?.value.initialized ?? false)) {
-      return 0.0;
-    }
 
     return (currentPosition >= showBeforeEndMillis) ? currentPosition / hidePlayNextButton : 0.0;
   }
