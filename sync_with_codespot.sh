@@ -18,7 +18,12 @@ send_mail () {
         -xu "$SMTP_USER" \
         -xp "$SMTP_PASS" \
         -o tls=yes
-    exit 0
+    if [ "$RESULT_POSITIVE" != true ]
+    then
+        exit 1
+    else
+        exit 0
+    fi
 }
 
 RESULT_POSITIVE=false
@@ -38,4 +43,6 @@ then
         RESULT_POSITIVE=true
     fi
     send_mail
+else
+    exit 0
 fi
