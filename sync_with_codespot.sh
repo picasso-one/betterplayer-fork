@@ -1,15 +1,8 @@
-
-git fetch codespot develop
-CODESPOT_HASH=$(git rev-parse codespot/develop)
-ORIGIN_HASH=$(git rev-parse develop)
-if [ "$CODESPOT_HASH" != "$ORIGIN_HASH" ]
-then
+send_mail () {
     set -a
     source sync.env
     set +a
-    git update-ref refs/heads/develop codespot/develop
-    git push origin develop
-    if [ $? -ne 0 ]
+    if [ "$RESULT_POSITIVE" != true ]
     then
         SUBJECT="$SUBJECT_NEGATIVE"
     else
@@ -25,4 +18,24 @@ then
         -xu "$SMTP_USER" \
         -xp "$SMTP_PASS" \
         -o tls=yes
+    exit 0
+}
+
+RESULT_POSITIVE=false
+git fetch codespot develop
+if [ $? -ne 0 ]
+then
+    send_mail
+fi
+CODESPOT_HASH=$(git rev-parse codespot/develop)
+ORIGIN_HASH=$(git rev-parse develop)
+if [ "$CODESPOT_HASH" != "$ORIGIN_HASH" ]
+then
+    git update-ref refs/heads/develop codespot/develop
+    git push origin develop
+    if [ $? -eq  0 ]
+    then
+        RESULT_POSITIVE=true
+    fi
+    send_mail
 fi
