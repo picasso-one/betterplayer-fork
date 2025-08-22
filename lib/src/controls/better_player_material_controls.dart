@@ -980,9 +980,6 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
 
       if (!_controller!.value.initialized) {
       } else {
-        if (isFinished && !_betterPlayerController!.isLiveStream()) {
-          _betterPlayerController!.seekTo(const Duration());
-        }
         _betterPlayerController!.play();
         _betterPlayerController!.cancelNextVideoTimer();
       }
