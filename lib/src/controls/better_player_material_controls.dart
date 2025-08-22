@@ -456,10 +456,10 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
             Padding(
               padding: EdgeInsets.only(
                 left: betterPlayerController!.isFullScreen
-                    ? 0
+                    ? 68
                     : betterPlayerController!.betterPlayerRestartTvConfiguration != null &&
                             betterPlayerController!.isLiveStream()
-                        ? 28
+                        ? 48
                         : 0,
               ),
               child: _buildRestart(_controller!),
