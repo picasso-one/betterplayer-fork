@@ -18,19 +18,15 @@ send_mail () {
         -xu "$SMTP_USER" \
         -xp "$SMTP_PASS" \
         -o tls=yes
-    if [ "$RESULT_POSITIVE" != true ]
-    then
-        exit 1
-    else
-        exit 0
-    fi
 }
 
 RESULT_POSITIVE=false
 git fetch codespot develop
-if [ $? -ne 0 ]
+EXIT_FETCH=$?
+if [ $EXIT_FETCH -ne 0 ]
 then
     send_mail
+    exit $EXIT_FETCH
 fi
 CODESPOT_HASH=$(git rev-parse codespot/develop)
 ORIGIN_HASH=$(git rev-parse develop)
@@ -43,6 +39,8 @@ then
         RESULT_POSITIVE=true
     fi
     send_mail
-else
-    exit 0
+    if [ "$RESULT_POSITIVE" != true ]
+    then
+        exit 1
+    fi
 fi
