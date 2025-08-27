@@ -1,3 +1,4 @@
+#!/bin/bash
 send_mail () {
     set -a
     source sync.env
@@ -20,6 +21,8 @@ send_mail () {
         -o tls=yes
 }
 
+export http_proxy=http://proxy.toya.net.pl:6060/
+export https_proxy=http://proxy.toya.net.pl:6060/
 RESULT_POSITIVE=false
 git fetch codespot develop
 EXIT_FETCH=$?
