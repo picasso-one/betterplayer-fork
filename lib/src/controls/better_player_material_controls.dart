@@ -459,7 +459,7 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                     ? 68
                     : betterPlayerController!.betterPlayerRestartTvConfiguration != null &&
                             betterPlayerController!.isLiveStream()
-                        ? 48
+                        ? 40
                         : 0,
               ),
               child: _buildRestart(_controller!),
