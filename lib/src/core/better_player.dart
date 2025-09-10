@@ -173,10 +173,6 @@ class _BetterPlayerState extends State<BetterPlayer> with WidgetsBindingObserver
         _isFullScreen = false;
         isVideoContent = false;
         widget.controller.exitFullScreen();
-        await SystemChrome.setPreferredOrientations(_betterPlayerConfiguration.deviceOrientationsOnFullScreen);
-        await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-            overlays: _betterPlayerConfiguration.systemOverlaysAfterFullScreen);
-        await SystemChrome.setPreferredOrientations(_betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
       }
     });
   }
