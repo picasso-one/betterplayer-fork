@@ -72,9 +72,6 @@ class _BetterPlayerState extends State<BetterPlayer> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (!_initialized) {
-      _startDurationCheckTimer();
-    }
   }
 
   @override
@@ -136,9 +133,7 @@ class _BetterPlayerState extends State<BetterPlayer> with WidgetsBindingObserver
       _controllerEventSubscription?.cancel();
       _controllerEventSubscription = widget.controller.controllerEventStream.listen(onControllerEvent);
     }
-    if (_lastUrl != null && _lastUrl != _controller.betterPlayerDataSource?.url) {
-      _startDurationCheckTimer();
-    }
+
     super.didUpdateWidget(oldWidget);
   }
 
