@@ -587,6 +587,19 @@ internal class BetterPlayer(
             return exoPlayer?.currentPosition ?: 0L
         }
 
+    val windowStartTime: Long   
+        get() {
+            val timeline = exoPlayer?.currentTimeline
+            timeline?.let {
+                if (!timeline.isEmpty) {
+                    val windowStartTimeMs =
+                        timeline.getWindow(0, Timeline.Window()).windowStartTimeMs
+                    return windowStartTimeMs
+                }
+            }
+            return exoPlayer?.currentPosition ?: 0L
+        }
+
     private fun sendInitialized() {
         if (isInitialized) {
             val event: MutableMap<String, Any?> = HashMap()

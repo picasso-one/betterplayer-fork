@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 import 'dart:async';
+import 'dart:io';
 
 import 'package:better_player/src/configuration/better_player_buffering_configuration.dart';
 import 'package:better_player/src/core/better_player_utils.dart';
@@ -49,14 +50,11 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           'minBufferMs': bufferingConfiguration.minBufferMs,
           'maxBufferMs': bufferingConfiguration.maxBufferMs,
           'bufferForPlaybackMs': bufferingConfiguration.bufferForPlaybackMs,
-          'bufferForPlaybackAfterRebufferMs':
-              bufferingConfiguration.bufferForPlaybackAfterRebufferMs,
+          'bufferForPlaybackAfterRebufferMs': bufferingConfiguration.bufferForPlaybackAfterRebufferMs,
         },
       );
 
-      response = responseLinkedHashMap != null
-          ? Map<String, dynamic>.from(responseLinkedHashMap)
-          : null;
+      response = responseLinkedHashMap != null ? Map<String, dynamic>.from(responseLinkedHashMap) : null;
     }
     return response?['textureId'] as int?;
   }
@@ -185,8 +183,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> setTrackParameters(
-      int? textureId, int? width, int? height, int? bitrate) {
+  Future<void> setTrackParameters(int? textureId, int? width, int? height, int? bitrate) {
     return _channel.invokeMethod<void>(
       'setTrackParameters',
       <String, dynamic>{
@@ -222,8 +219,33 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   @override
   Future<DateTime?> getAbsolutePosition(int? textureId) async {
     try {
-      final int milliseconds = await _channel.invokeMethod<int>(
+      int milliseconds = await _channel.invokeMethod<int>(
             'absolutePosition',
+            <String, dynamic>{'textureId': textureId},
+          ) ??
+          0;
+      print("ABSPosit=> $milliseconds");
+      if (milliseconds <= 0) return null;
+      if (Platform.isIOS) {
+        final baseTime = DateTime.now(); // or any base DateTime
+        final duration = Duration(milliseconds: milliseconds);
+
+        milliseconds = baseTime.add(duration).millisecondsSinceEpoch;
+      }
+      print("ABSPosit=> $milliseconds");
+      return _safeFromMillisecondsSinceEpoch(milliseconds);
+    } catch (e) {
+      print("Error => $e");
+      // in case type parsing error
+      return null;
+    }
+  }
+
+  @override
+  Future<DateTime?> getWindowStartPosition(int? textureId) async {
+    try {
+      final int milliseconds = await _channel.invokeMethod<int>(
+            'windowStartPosition',
             <String, dynamic>{'textureId': textureId},
           ) ??
           0;
@@ -238,8 +260,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> enablePictureInPicture(int? textureId, double? top, double? left,
-      double? width, double? height) async {
+  Future<void> enablePictureInPicture(int? textureId, double? top, double? left, double? width, double? height) async {
     return _channel.invokeMethod<void>(
       'enablePictureInPicture',
       <String, dynamic>{
@@ -334,9 +355,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Stream<VideoEvent> videoEventsFor(int? textureId) {
-    return _eventChannelFor(textureId)
-        .receiveBroadcastStream()
-        .map((dynamic event) {
+    return _eventChannelFor(textureId).receiveBroadcastStream().map((dynamic event) {
       late Map<dynamic, dynamic> map;
       if (event is Map) {
         map = event;
