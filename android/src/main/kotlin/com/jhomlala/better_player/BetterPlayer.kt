@@ -499,10 +499,24 @@ internal class BetterPlayer(
             override fun onPlayerError(error: PlaybackException) {
                 eventSink.error("VideoError", "Video player had error $error", "")
             }
+            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+                sendTimelineChangedEvent(timeline, reason)
+            }
         })
         val reply: MutableMap<String, Any> = HashMap()
         reply["textureId"] = textureEntry.id()
         result.success(reply)
+    }
+
+    private fun sendTimelineChangedEvent(timeline: Timeline, reason: Int) {
+        if (exoPlayer == null) return
+
+        val event: MutableMap<String, Any?> = HashMap()
+        event["event"] = "timelineChanged"
+        event["key"] = key
+        event["duration"] = getDuration()
+
+        eventSink.success(event)
     }
 
     fun sendBufferingUpdate(isFromBufferingStart: Boolean) {

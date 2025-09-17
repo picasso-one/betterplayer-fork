@@ -424,6 +424,12 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
             key: key,
           );
 
+        case 'timelineChanged':
+          return VideoEvent(
+            eventType: VideoEventType.timelineChanged,
+            key: key,
+            duration: Duration(milliseconds: map['duration'] as int),
+          );
         default:
           return VideoEvent(
             eventType: VideoEventType.unknown,

@@ -258,6 +258,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         case VideoEventType.pipStop:
           value = value.copyWith(isPip: false);
           break;
+        case VideoEventType.timelineChanged:
+          value = value.copyWith(duration: event.duration);
+          break;
         case VideoEventType.unknown:
           break;
       }
