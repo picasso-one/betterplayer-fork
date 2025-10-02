@@ -49,14 +49,11 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           'minBufferMs': bufferingConfiguration.minBufferMs,
           'maxBufferMs': bufferingConfiguration.maxBufferMs,
           'bufferForPlaybackMs': bufferingConfiguration.bufferForPlaybackMs,
-          'bufferForPlaybackAfterRebufferMs':
-              bufferingConfiguration.bufferForPlaybackAfterRebufferMs,
+          'bufferForPlaybackAfterRebufferMs': bufferingConfiguration.bufferForPlaybackAfterRebufferMs,
         },
       );
 
-      response = responseLinkedHashMap != null
-          ? Map<String, dynamic>.from(responseLinkedHashMap)
-          : null;
+      response = responseLinkedHashMap != null ? Map<String, dynamic>.from(responseLinkedHashMap) : null;
     }
     return response?['textureId'] as int?;
   }
@@ -185,8 +182,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> setTrackParameters(
-      int? textureId, int? width, int? height, int? bitrate) {
+  Future<void> setTrackParameters(int? textureId, int? width, int? height, int? bitrate) {
     return _channel.invokeMethod<void>(
       'setTrackParameters',
       <String, dynamic>{
@@ -205,6 +201,36 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
       <String, dynamic>{
         'textureId': textureId,
         'location': position!.inMilliseconds,
+      },
+    );
+  }
+
+  @override
+  Future<void> seekBackward(int? textureId) {
+    return _channel.invokeMethod<void>(
+      'seekBackward10',
+      <String, dynamic>{
+        'textureId': textureId,
+      },
+    );
+  }
+
+  @override
+  Future<void> seekForward(int? textureId) {
+    return _channel.invokeMethod<void>(
+      'skipForwards',
+      <String, dynamic>{
+        'textureId': textureId,
+      },
+    );
+  }
+
+  @override
+  Future<void> getDvrWindow(int? textureId) {
+    return _channel.invokeMethod<void>(
+      'dvrWindow',
+      <String, dynamic>{
+        'textureId': textureId,
       },
     );
   }
@@ -238,8 +264,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> enablePictureInPicture(int? textureId, double? top, double? left,
-      double? width, double? height) async {
+  Future<void> enablePictureInPicture(int? textureId, double? top, double? left, double? width, double? height) async {
     return _channel.invokeMethod<void>(
       'enablePictureInPicture',
       <String, dynamic>{
@@ -334,9 +359,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Stream<VideoEvent> videoEventsFor(int? textureId) {
-    return _eventChannelFor(textureId)
-        .receiveBroadcastStream()
-        .map((dynamic event) {
+    return _eventChannelFor(textureId).receiveBroadcastStream().map((dynamic event) {
       late Map<dynamic, dynamic> map;
       if (event is Map) {
         map = event;
@@ -368,6 +391,8 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
             key: key,
             duration: Duration(milliseconds: map['duration'] as int),
             size: size,
+            dvrStart: map.containsKey("dvrStart") ? Duration(milliseconds: map["dvrStart"] as int) : null,
+            dvrEnd: map.containsKey("dvrEnd") ? Duration(milliseconds: map["dvrEnd"] as int) : null,
           );
         case 'completed':
           return VideoEvent(
@@ -386,11 +411,15 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           return VideoEvent(
             eventType: VideoEventType.bufferingStart,
             key: key,
+            dvrStart: map.containsKey("dvrStart") ? Duration(milliseconds: map["dvrStart"] as int) : null,
+            dvrEnd: map.containsKey("dvrEnd") ? Duration(milliseconds: map["dvrEnd"] as int) : null,
           );
         case 'bufferingEnd':
           return VideoEvent(
             eventType: VideoEventType.bufferingEnd,
             key: key,
+            dvrStart: map.containsKey("dvrStart") ? Duration(milliseconds: map["dvrStart"] as int) : null,
+            dvrEnd: map.containsKey("dvrEnd") ? Duration(milliseconds: map["dvrEnd"] as int) : null,
           );
 
         case 'play':
@@ -412,6 +441,23 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
             position: Duration(milliseconds: map['position'] as int),
           );
 
+        case 'position':
+          return VideoEvent(
+            eventType: VideoEventType.position,
+            key: key,
+            position: Duration(milliseconds: map['position'] as int),
+            dvrStart: map.containsKey("dvrStart") ? Duration(milliseconds: map["dvrStart"] as int) : null,
+            dvrEnd: map.containsKey("dvrEnd") ? Duration(milliseconds: map["dvrEnd"] as int) : null,
+          );
+
+        case 'dvrWindow':
+          return VideoEvent(
+            eventType: VideoEventType.position,
+            key: key,
+            dvrStart: map.containsKey("dvrStart") ? Duration(milliseconds: map["dvrStart"] as int) : null,
+            dvrEnd: map.containsKey("dvrEnd") ? Duration(milliseconds: map["dvrEnd"] as int) : null,
+          );
+
         case 'pipStart':
           return VideoEvent(
             eventType: VideoEventType.pipStart,
@@ -428,6 +474,8 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           return VideoEvent(
             eventType: VideoEventType.unknown,
             key: key,
+            dvrStart: map.containsKey("dvrStart") ? Duration(milliseconds: map["dvrStart"] as int) : null,
+            dvrEnd: map.containsKey("dvrEnd") ? Duration(milliseconds: map["dvrEnd"] as int) : null,
           );
       }
     });

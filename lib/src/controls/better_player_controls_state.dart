@@ -34,23 +34,35 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget> extends State
 
   void skipBack() {
     if (latestValue != null) {
-      cancelAndRestartTimer();
-      final beginning = const Duration().inMilliseconds;
-      final skip = (latestValue!.position -
-              Duration(milliseconds: betterPlayerControlsConfiguration.backwardSkipTimeInMilliseconds))
-          .inMilliseconds;
-      betterPlayerController!.seekTo(Duration(milliseconds: max(skip, beginning)));
+      if (Platform.isIOS) {
+        betterPlayerController!.seekBackward();
+      } else {
+        cancelAndRestartTimer();
+        final beginning = const Duration().inMilliseconds;
+        final skip = (latestValue!.position -
+                Duration(milliseconds: betterPlayerControlsConfiguration.backwardSkipTimeInMilliseconds))
+            .inMilliseconds;
+        betterPlayerController!.seekTo(Duration(milliseconds: max(skip, beginning)));
+      }
     }
+  }
+
+  void skipBackward() {
+    betterPlayerController!.getDvrWindow();
   }
 
   void skipForward() {
     if (latestValue != null) {
-      cancelAndRestartTimer();
-      final end = latestValue!.duration!.inMilliseconds;
-      final skip = (latestValue!.position +
-              Duration(milliseconds: betterPlayerControlsConfiguration.forwardSkipTimeInMilliseconds))
-          .inMilliseconds;
-      betterPlayerController!.seekTo(Duration(milliseconds: min(skip, end)));
+      if (Platform.isIOS) {
+        betterPlayerController!.seekForward();
+      } else {
+        cancelAndRestartTimer();
+        final end = latestValue!.duration!.inMilliseconds;
+        final skip = (latestValue!.position +
+                Duration(milliseconds: betterPlayerControlsConfiguration.forwardSkipTimeInMilliseconds))
+            .inMilliseconds;
+        betterPlayerController!.seekTo(Duration(milliseconds: min(skip, end)));
+      }
     }
   }
 
