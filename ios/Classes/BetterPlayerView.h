@@ -3,11 +3,10 @@
 // found in the LICENSE file.
 
 #import <UIKit/UIKit.h>
-#import <AVKit/AVKit.h>
 #import <AVFoundation/AVFoundation.h>
 
-// BetterPlayerView.h
 @interface BetterPlayerView : UIView
-@property AVPlayer *player;
-@property (readonly) AVPlayerLayer *playerLayer;
+
+@property (nonatomic, strong) AVPlayer *player;
+
 @end

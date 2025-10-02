@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:better_player/better_player.dart';
 import 'package:better_player/src/video_player/video_player.dart';
@@ -17,8 +18,7 @@ class BetterPlayerMaterialVideoProgressBar extends StatefulWidget {
     this.onDragUpdate,
     this.onTapDown,
     Key? key,
-  })
-      : colors = colors ?? BetterPlayerProgressColors(),
+  })  : colors = colors ?? BetterPlayerProgressColors(),
         isContentLive = betterPlayerController?.isLiveStream() ?? false,
         super(key: key);
 
@@ -138,10 +138,18 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
   }
 
   void _setupUpdateBlockTimer() {
-    _updateBlockTimer = Timer(const Duration(milliseconds: 1000), () {
-      lastSeek = null;
-      _cancelUpdateBlockTimer();
-    });
+    if (Platform.isIOS) {
+      _updateBlockTimer?.cancel();
+      _updateBlockTimer = Timer(const Duration(milliseconds: 500), () {
+        lastSeek = null;
+        _cancelUpdateBlockTimer();
+      });
+    } else {
+      _updateBlockTimer = Timer(const Duration(milliseconds: 1000), () {
+        lastSeek = null;
+        _cancelUpdateBlockTimer();
+      });
+    }
   }
 
   void _cancelUpdateBlockTimer() {
@@ -149,29 +157,60 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
     _updateBlockTimer = null;
   }
 
+  DateTime? _blockProgressUpdatesUntil;
+
+  int clampPosition(int targetMs) {
+    final int dvrStartMs = controller!.value.dvrStart.inMilliseconds ?? 0;
+    final int dvrEndMs = controller!.value.dvrEnd.inMilliseconds ?? controller!.value.duration!.inMilliseconds;
+    return targetMs.clamp(dvrStartMs, dvrEndMs);
+  }
+
   VideoPlayerValue _getValue() {
-    if (lastSeek != null) {
-      return controller!.value.copyWith(position: lastSeek);
-    } else {
+    if (Platform.isIOS) {
+      if (_blockProgressUpdatesUntil != null && DateTime.now().isBefore(_blockProgressUpdatesUntil!)) {
+        return controller!.value.copyWith(position: lastSeek);
+      }
       return controller!.value;
+    } else {
+      if (lastSeek != null) {
+        return controller!.value.copyWith(position: lastSeek);
+      } else {
+        return controller!.value;
+      }
     }
   }
 
   void seekToRelativePosition(Offset globalPosition) async {
-    final RenderObject? renderObject = context.findRenderObject();
-    if (renderObject != null) {
-      final box = renderObject as RenderBox;
-      final Offset tapPos = box.globalToLocal(globalPosition);
-      final double relative = tapPos.dx / box.size.width;
-      if (relative > 0) {
-        final Duration position = controller!.value.duration! * relative;
-        lastSeek = position;
-        await betterPlayerController!.seekTo(position);
-        onFinishedLastSeek();
-        if (relative >= 1) {
-          lastSeek = controller!.value.duration;
-          await betterPlayerController!.seekTo(controller!.value.duration!);
+    if (Platform.isIOS) {
+      final box = context.findRenderObject() as RenderBox;
+      final double relative = (box.globalToLocal(globalPosition).dx / box.size.width).clamp(0.0, 1.0);
+
+      final int dvrStart = controller!.value.dvrStart.inMilliseconds ?? 0;
+      final int dvrEnd = controller!.value.dvrEnd.inMilliseconds ?? controller!.value.duration!.inMilliseconds;
+
+      final int targetMs = (dvrStart + relative * (dvrEnd - dvrStart)).toInt();
+      lastSeek = Duration(milliseconds: clampPosition(targetMs));
+
+      _blockProgressUpdatesUntil = DateTime.now().add(const Duration(milliseconds: 700));
+
+      await betterPlayerController!.seekTo(lastSeek!);
+      onFinishedLastSeek();
+    } else {
+      final RenderObject? renderObject = context.findRenderObject();
+      if (renderObject != null) {
+        final box = renderObject as RenderBox;
+        final Offset tapPos = box.globalToLocal(globalPosition);
+        final double relative = tapPos.dx / box.size.width;
+        if (relative > 0) {
+          final Duration position = controller!.value.duration! * relative;
+          lastSeek = position;
+          await betterPlayerController!.seekTo(position);
           onFinishedLastSeek();
+          if (relative >= 1) {
+            lastSeek = controller!.value.duration;
+            await betterPlayerController!.seekTo(controller!.value.duration!);
+            onFinishedLastSeek();
+          }
         }
       }
     }
@@ -181,6 +220,13 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
     if (shouldPlayAfterDragEnd) {
       shouldPlayAfterDragEnd = false;
       betterPlayerController?.play();
+    }
+    if (Platform.isIOS) {
+      // Resetuj lastSeek dopiero po małym delay, aby AVPlayer zakończył buffering
+      Future.delayed(const Duration(milliseconds: 500), () {
+        lastSeek = null;
+        if (mounted) setState(() {}); // odśwież progress bar
+      });
     }
   }
 }
@@ -226,26 +272,49 @@ class _ProgressBarPainter extends CustomPainter {
   }
 
   void _drawActualProgressBar(Canvas canvas, Size size) {
-    double playedPartPercent = _value.position.inMilliseconds / _value.duration!.inMilliseconds;
-    if (playedPartPercent.isNaN) {
-      playedPartPercent = 0;
-    }
-    final double playedPart = playedPartPercent > 1 ? size.width : playedPartPercent * size.width;
+    if (Platform.isIOS) {
+      // Use DVR if available
+      final int dvrStartMs = (_value.dvrStart as Duration?)?.inMilliseconds ?? 0;
+      final int dvrEndMs = (_value.dvrEnd as Duration?)?.inMilliseconds ?? _value.duration!.inMilliseconds;
+      final int positionMs = _value.position.inMilliseconds;
 
-    for (final DurationRange range in _value.buffered) {
-      double start = range.startFraction(_value.duration!) * size.width;
-      if (start.isNaN) {
-        start = 0;
-      }
-      double end = range.endFraction(_value.duration!) * size.width;
-      if (end.isNaN) {
-        end = 0;
-      }
-      drawBufferedProgressBar(canvas, size, start, end);
-    }
+      // Calculate played part percent based on DVR
+      double playedPartPercent = ((positionMs - dvrStartMs) / (dvrEndMs - dvrStartMs)).clamp(0.0, 1.0);
+      final double playedPart = playedPartPercent * size.width;
 
-    _drawPlayedProgressBar(canvas, size, playedPart);
-    _drawCurrentTimeIndicator(canvas, size, playedPart);
+      // Draw buffered ranges based on DVR
+      for (final DurationRange range in _value.buffered) {
+        double rangeStart =
+            ((range.start.inMilliseconds - dvrStartMs) / (dvrEndMs - dvrStartMs) * size.width).clamp(0.0, size.width);
+        double rangeEnd =
+            ((range.end.inMilliseconds - dvrStartMs) / (dvrEndMs - dvrStartMs) * size.width).clamp(0.0, size.width);
+        drawBufferedProgressBar(canvas, size, rangeStart, rangeEnd);
+      }
+
+      _drawPlayedProgressBar(canvas, size, playedPart);
+      _drawCurrentTimeIndicator(canvas, size, playedPart);
+    } else {
+      double playedPartPercent = _value.position.inMilliseconds / _value.duration!.inMilliseconds;
+      if (playedPartPercent.isNaN) {
+        playedPartPercent = 0;
+      }
+      final double playedPart = playedPartPercent > 1 ? size.width : playedPartPercent * size.width;
+
+      for (final DurationRange range in _value.buffered) {
+        double start = range.startFraction(_value.duration!) * size.width;
+        if (start.isNaN) {
+          start = 0;
+        }
+        double end = range.endFraction(_value.duration!) * size.width;
+        if (end.isNaN) {
+          end = 0;
+        }
+        drawBufferedProgressBar(canvas, size, start, end);
+      }
+
+      _drawPlayedProgressBar(canvas, size, playedPart);
+      _drawCurrentTimeIndicator(canvas, size, playedPart);
+    }
   }
 
   void _drawLinearProgressBar(Canvas canvas, Paint paint, double startX, double startY, double endX, double endY) {
@@ -345,5 +414,16 @@ class _LiveProgressbarPainter extends _ProgressBarPainter {
   }
 
   //make sure that progress is not minus or more than 100%. This can only apply for live content.
-  double _getLiveContentProgress() => (_value.position.inMilliseconds / _value.duration!.inMilliseconds).clamp(0, 1);
+  double _getLiveContentProgress() {
+    if (Platform.isIOS) {
+      final double startMs = (_value.dvrStart as Duration?)?.inMilliseconds.toDouble() ?? 0.0;
+      final double endMs =
+          (_value.dvrEnd as Duration?)?.inMilliseconds.toDouble() ?? _value.duration!.inMilliseconds.toDouble();
+      final int positionMs = _value.position.inMilliseconds.toInt();
+
+      return ((positionMs - startMs) / (endMs - startMs)).clamp(0.0, 1.0);
+    } else {
+      return (_value.position.inMilliseconds / _value.duration!.inMilliseconds).clamp(0, 1);
+    }
+  }
 }
