@@ -220,6 +220,43 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     return [self setDataSourceURL:[NSURL fileURLWithPath:path] withKey:key withCertificateUrl:certificateUrl withLicenseUrl:(NSString*)licenseUrl withHeaders: @{} withDrmHeaders: @{} withCache: false cacheKey:cacheKey cacheManager:cacheManager overriddenDuration:overriddenDuration videoExtension: nil];
 }
 
+- (void)seekBackward10 {
+    AVPlayerItem *item = _player.currentItem;
+    if (!item) {
+        return;
+    }
+
+    NSArray *seekableRanges = item.seekableTimeRanges;
+    if (seekableRanges.count == 0) {
+        return; // nic nie zbuforowane
+    }
+
+    // bierzemy ostatni zakres (zwykle aktualny DVR window)
+    CMTimeRange range = [seekableRanges.lastObject CMTimeRangeValue];
+
+    CMTime current = item.currentTime;
+    CMTime newTime = CMTimeSubtract(current, CMTimeMakeWithSeconds(10, NSEC_PER_SEC));
+
+    // upewnij się, że nie cofniemy przed początek DVR
+    if (CMTimeCompare(newTime, range.start) < 0) {
+        newTime = range.start;
+    }
+
+    bool wasPlaying = _isPlaying;
+    if (wasPlaying) {
+        [_player pause];
+    }
+
+    [_player seekToTime:newTime
+        toleranceBefore:kCMTimeZero
+         toleranceAfter:kCMTimeZero
+      completionHandler:^(BOOL finished) {
+        if (wasPlaying) {
+            self->_player.rate = self->_playerRate;
+        }
+    }];
+}
+
 //MGR: pass both Headers and drmHeaders from flutter
 - (void)setDataSourceURL:(NSURL*)url withKey:(NSString*)key withCertificateUrl:(NSString*)certificateUrl withLicenseUrl:(NSString*)licenseUrl withHeaders:(NSDictionary*)headers withDrmHeaders:(NSDictionary*)drmHeaders withCache:(BOOL)useCache cacheKey:(NSString*)cacheKey cacheManager:(CacheManager*)cacheManager overriddenDuration:(int) overriddenDuration videoExtension: (NSString*) videoExtension{
     _overriddenDuration = 0;
@@ -494,10 +531,10 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         CGAffineTransform prefTrans = track.assetTrack.preferredTransform;
         CGSize realSize = CGSizeApplyAffineTransform(naturalSize, prefTrans);
 
-        int64_t duration = [BetterPlayerTimeUtils FLTCMTimeToMillis:(_player.currentItem.asset.duration)];
-        if (_overriddenDuration > 0 && duration > _overriddenDuration){
-            _player.currentItem.forwardPlaybackEndTime = CMTimeMake(_overriddenDuration/1000, 1);
-        }
+       int64_t duration = [BetterPlayerTimeUtils FLTCMTimeToMillis:(_player.currentItem.asset.duration)];
+if (_overriddenDuration > 0 && duration > _overriddenDuration && !CMTIME_IS_INDEFINITE(_player.currentItem.duration)) {
+    _player.currentItem.forwardPlaybackEndTime = CMTimeMake(_overriddenDuration/1000, 1);
+}
 
         _isInitialized = true;
         [self updatePlayingState];
@@ -564,18 +601,55 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)seekTo:(int)location {
-    ///When player is playing, pause video, seek to new position and start again. This will prevent issues with seekbar jumps.
-    bool wasPlaying = _isPlaying;
-    if (wasPlaying){
+    BOOL wasPlaying = _isPlaying;
+    if (wasPlaying) {
         [_player pause];
     }
 
-    [_player seekToTime:CMTimeMake(location, 1000)
+    AVPlayerItem *item = _player.currentItem;
+    if (!item) {
+        return;
+    }
+
+    NSArray *seekableRanges = item.seekableTimeRanges;
+    if (seekableRanges.count == 0) {
+        return;
+    }
+
+    // aktualne DVR okno
+    CMTimeRange range = [seekableRanges.lastObject CMTimeRangeValue];
+    Float64 dvrStart = CMTimeGetSeconds(range.start);
+    Float64 dvrEnd   = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
+
+    // oblicz docelowy czas
+    Float64 targetSeconds = dvrStart + (location / 1000.0);
+
+    // clamp – nie pozwól wyjść poza DVR okno
+    if (targetSeconds < dvrStart) {
+        targetSeconds = dvrStart;
+    } else if (targetSeconds > dvrEnd) {
+        targetSeconds = dvrEnd;
+    }
+
+    CMTime seekTime = CMTimeMakeWithSeconds(targetSeconds, NSEC_PER_SEC);
+
+    [_player seekToTime:seekTime
         toleranceBefore:kCMTimeZero
          toleranceAfter:kCMTimeZero
-      completionHandler:^(BOOL finished){
-        if (wasPlaying){
-            _player.rate = _playerRate;
+      completionHandler:^(BOOL finished) {
+        if (wasPlaying) {
+            self->_player.rate = self->_playerRate;
+        }
+        // 👇 wyślij event do Fluttera, żeby zsynchronizować progress bar
+        if (self->_eventSink) {
+            int64_t millis = (int64_t)(targetSeconds * 1000);
+            self->_eventSink(@{
+                @"event": @"position",
+                @"position": @(millis),
+                @"dvrStart": @((int64_t)(dvrStart * 1000)),
+                @"dvrEnd": @((int64_t)(dvrEnd * 1000)),
+                @"key": self->_key
+            });
         }
     }];
 }

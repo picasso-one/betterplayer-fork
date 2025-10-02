@@ -728,6 +728,18 @@ class BetterPlayerController {
     }
   }
 
+  Future<void> seekBackward() async {
+    await videoPlayerController!.seekBackward();
+  }
+
+  Future<void> seekForward() async {
+    await videoPlayerController!.seekForward();
+  }
+
+  Future<void> getDvrWindow() async {
+    await videoPlayerController!.getDvrWindow();
+  }
+
   ///Set volume of player. Allows values from 0.0 to 1.0.
   Future<void> setVolume(double volume) async {
     if (volume < 0.0 || volume > 1.0) {
@@ -868,6 +880,7 @@ class BetterPlayerController {
     final int now = DateTime.now().millisecondsSinceEpoch;
     if (now - _lastPositionSelection > 500) {
       _lastPositionSelection = now;
+      // await getDvrWindow();
       _postEvent(
         BetterPlayerEvent(
           BetterPlayerEventType.progress,

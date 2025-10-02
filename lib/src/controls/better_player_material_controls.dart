@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:better_player/better_player.dart';
 import 'package:better_player/src/controls/better_player_clickable_widget.dart';
@@ -551,25 +552,57 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
   }
 
   Widget _buildModernForwardButton() {
-    final end = latestValue!.duration!.inMilliseconds;
-    final skip = (latestValue!.position +
-            Duration(milliseconds: betterPlayerControlsConfiguration.forwardSkipTimeInMilliseconds))
-        .inMilliseconds;
+    bool canSkip = false;
+    bool androidCanSkip = false;
+    bool canSkipForward = false;
+
+    if (Platform.isIOS) {
+      final position = latestValue!.position.inMilliseconds;
+
+      // uwzględnij DVR window jeśli istnieje
+      final int dvrEnd = (latestValue!.dvrEnd.inMilliseconds ?? latestValue!.duration!.inMilliseconds);
+
+      final int skipTarget = position + betterPlayerControlsConfiguration.forwardSkipTimeInMilliseconds;
+
+      canSkip = skipTarget <= dvrEnd;
+    } else {
+      final end = latestValue!.duration!.inMilliseconds;
+      final skip = (latestValue!.position +
+              Duration(milliseconds: betterPlayerControlsConfiguration.forwardSkipTimeInMilliseconds))
+          .inMilliseconds;
+
+      androidCanSkip = skip > end;
+      canSkipForward = skip < end;
+    }
 
     return _BetterPlayerModerBackgroundButton(
       size: 48,
-      color: skip > end ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.8),
+      color: Platform.isIOS
+          ? canSkip
+              ? Colors.black.withOpacity(0.8)
+              : Colors.black.withOpacity(0.4)
+          : androidCanSkip
+              ? Colors.black.withOpacity(0.4)
+              : Colors.black.withOpacity(0.8),
       child: _buildHitAreaClickableButton(
         icon: Text(
           '+10s',
           style: TextStyle(
-            color: _controlsConfiguration.iconsColor.withOpacity(skip > end ? 0.5 : 1.0),
+            color: _controlsConfiguration.iconsColor.withOpacity(Platform.isIOS
+                ? canSkip
+                    ? 1.0
+                    : 0.5
+                : androidCanSkip
+                    ? 0.5
+                    : 1.0),
             fontSize: 14,
             fontWeight: FontWeight.w700,
           ),
         ),
         onClicked: () {
-          if (skip < end) {
+          if (canSkipForward) {
+            skipForward();
+          } else if (canSkip) {
             skipForward();
           }
         },
