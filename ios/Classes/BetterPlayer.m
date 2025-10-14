@@ -5,12 +5,12 @@
 #import "BetterPlayer.h"
 #import <better_player/better_player-Swift.h>
 
-static void* timeRangeContext = &timeRangeContext;
-static void* statusContext = &statusContext;
-static void* playbackLikelyToKeepUpContext = &playbackLikelyToKeepUpContext;
-static void* playbackBufferEmptyContext = &playbackBufferEmptyContext;
-static void* playbackBufferFullContext = &playbackBufferFullContext;
-static void* presentationSizeContext = &presentationSizeContext;
+static void* timeRangeContext;
+static void* statusContext;
+static void* playbackLikelyToKeepUpContext;
+static void* playbackBufferEmptyContext;
+static void* playbackBufferFullContext;
+static void* presentationSizeContext;
 
 #if TARGET_OS_IOS
 void (^__strong _Nonnull _restoreUserInterfaceForPIPStopCompletionHandler)(BOOL);
@@ -18,30 +18,45 @@ API_AVAILABLE(ios(9.0))
 AVPictureInPictureController *_pipController;
 #endif
 
-// Prywatna kategoria — deklarujemy prywatne metody żeby kompilator je widział
 @interface BetterPlayer ()
-
 - (void)onReadyToPlay;
 - (void)onAppDidBecomeActive:(NSNotification *)notification;
-
 @end
+
+static BOOL gWasPlayingBeforePip = NO;
+static BOOL gWasFullscreenBeforePip = NO;
 
 @implementation BetterPlayer {
     BOOL _wasPlayingBeforePip;
-    AVPlayerLayer *_playerLayer; // zachowujemy ivar _playerLayer
+    BOOL _wasFullscreenBeforePip;
+    CGRect screenBounds;
+    BOOL wasFullscreen;
+    AVPlayerLayer *_playerLayer;
+    CGRect _lastPlayerLayerFrame;
 }
 
 #pragma mark - Init
-
 - (instancetype)initWithFrame:(CGRect)frame {
-    self = [super init];
+     self = [super init];
     NSAssert(self, @"super init cannot be nil");
+
+    // inicjalizacja pól
+    screenBounds = [UIScreen mainScreen].bounds;
+    wasFullscreen = NO; 
+
+    // przypisanie kontekstów KVO
+    timeRangeContext = &timeRangeContext;
+    statusContext = &statusContext;
+    playbackLikelyToKeepUpContext = &playbackLikelyToKeepUpContext;
+    playbackBufferEmptyContext = &playbackBufferEmptyContext;
+    playbackBufferFullContext = &playbackBufferFullContext;
+    presentationSizeContext = &presentationSizeContext;
+
     _isInitialized = false;
     _isPlaying = false;
     _disposed = false;
     _player = [[AVPlayer alloc] init];
     _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
-    /// Fix for loading large videos
     if (@available(iOS 10.0, *)) {
         _player.automaticallyWaitsToMinimizeStalling = false;
     }
@@ -56,7 +71,6 @@ AVPictureInPictureController *_pipController;
 }
 
 #pragma mark - Observers
-
 - (void)addObservers:(AVPlayerItem*)item {
     if (!self._observersAdded){
         [_player addObserver:self forKeyPath:@"rate" options:0 context:nil];
@@ -93,7 +107,6 @@ AVPictureInPictureController *_pipController;
 }
 
 #pragma mark - Item End
-
 - (void)itemDidPlayToEndTime:(NSNotification*)notification {
     if (_isLooping) {
         AVPlayerItem* p = [notification object];
@@ -107,7 +120,6 @@ AVPictureInPictureController *_pipController;
 }
 
 #pragma mark - Video Composition helpers
-
 static inline CGFloat radiansToDegrees(CGFloat radians) {
     CGFloat degrees = GLKMathRadiansToDegrees((float)radians);
     if (degrees < 0) {
@@ -166,7 +178,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 #pragma mark - Data source setters
-
 - (void)setDataSourceAsset:(NSString*)asset withKey:(NSString*)key withCertificateUrl:(NSString*)certificateUrl withLicenseUrl:(NSString*)licenseUrl cacheKey:(NSString*)cacheKey cacheManager:(CacheManager*)cacheManager overriddenDuration:(int) overriddenDuration{
     NSString* path = [[NSBundle mainBundle] pathForResource:asset ofType:nil];
     return [self setDataSourceURL:[NSURL fileURLWithPath:path] withKey:key withCertificateUrl:certificateUrl withLicenseUrl:(NSString*)licenseUrl withHeaders: @{} withDrmHeaders: @{} withCache: false cacheKey:cacheKey cacheManager:cacheManager overriddenDuration:overriddenDuration videoExtension: nil];
@@ -180,16 +191,13 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
     NSArray *seekableRanges = item.seekableTimeRanges;
     if (seekableRanges.count == 0) {
-        return; // nic nie zbuforowane
+        return;
     }
 
-    // bierzemy ostatni zakres (zwykle aktualny DVR window)
     CMTimeRange range = [seekableRanges.lastObject CMTimeRangeValue];
-
     CMTime current = item.currentTime;
     CMTime newTime = CMTimeSubtract(current, CMTimeMakeWithSeconds(10, NSEC_PER_SEC));
 
-    // upewnij się, że nie cofniemy przed początek DVR
     if (CMTimeCompare(newTime, range.start) < 0) {
         newTime = range.start;
     }
@@ -642,7 +650,36 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
         dispatch_async(dispatch_get_main_queue(), ^{
             if (self._pictureInPicture && ![_pipController isPictureInPictureActive]) {
+                // 📸 Zapamiętaj stan PRZED PiP
+                if (self->_playerLayer) {
+                    self->_lastPlayerLayerFrame = self->_playerLayer.frame;
+
+                    CGRect screenBounds = [UIScreen mainScreen].bounds;
+                    CGRect frame = self->_playerLayer.frame;
+                    CGFloat coverage = (frame.size.width * frame.size.height) / (screenBounds.size.width * screenBounds.size.height);
+                    self->_wasFullscreenBeforePip = (coverage > 0.95);
+self->_wasPlayingBeforePip = self->_isPlaying;
+
+// zapamiętaj też globalnie
+gWasFullscreenBeforePip = self->_wasFullscreenBeforePip;
+gWasPlayingBeforePip = self->_wasPlayingBeforePip;
+
+NSLog(@"[BetterPlayer] Saving before PiP. wasPlayingBeforePip=%@ wasFullscreenBeforePip=%@",
+      gWasPlayingBeforePip ? @"YES" : @"NO",
+      gWasFullscreenBeforePip ? @"YES" : @"NO");
+
+                    NSLog(@"[BetterPlayer] Saving before PiP. frame=%@ screen=%@ coverage=%.2f wasFullscreenBeforePip=%@",
+                          NSStringFromCGRect(frame),
+                          NSStringFromCGRect(screenBounds),
+                          coverage,
+                          self->_wasFullscreenBeforePip ? @"YES" : @"NO");
+                }
+
                 [_pipController startPictureInPicture];
+
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    [[UIApplication sharedApplication] performSelector:@selector(suspend)];
+                });
             } else if (!self._pictureInPicture && [_pipController isPictureInPictureActive]) {
                 [_pipController stopPictureInPicture];
             }
@@ -668,13 +705,10 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
             _pipController.delegate = self;
         }
 
-        // Nasłuch na przywrócenie aplikacji — pomaga w przywróceniu warstwy AVPlayerLayer po backgroundzie
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(onAppDidBecomeActive:)
                                                      name:UIApplicationDidBecomeActiveNotification
                                                    object:nil];
-    } else {
-        // Fallback on earlier versions
     }
 }
 
@@ -727,18 +761,30 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 #endif
 
 #if TARGET_OS_IOS
-- (void)pictureInPictureControllerDidStopPictureInPicture:(AVPictureInPictureController *)pictureInPictureController  API_AVAILABLE(ios(9.0)){
-    // Po zatrzymaniu PiP spróbuj przywrócić warstwę — jeśli aplikacja jest w foregroundie,
-    // metoda onAppDidBecomeActive również nie będzie potrzebna.
-    if (_playerLayer && _playerLayer.superlayer == nil) {
+- (void)pictureInPictureControllerDidStopPictureInPicture:(AVPictureInPictureController *)pictureInPictureController API_AVAILABLE(ios(9.0)) {
+     if (_playerLayer) {
         UIViewController *rootVC = UIApplication.sharedApplication.keyWindow.rootViewController;
         if (rootVC && rootVC.view) {
-            [rootVC.view.layer addSublayer:_playerLayer];
-            _playerLayer.frame = rootVC.view.bounds;
+            if (_playerLayer.superlayer == nil) {
+                [rootVC.view.layer addSublayer:_playerLayer];
+            }
+
+            if (_wasFullscreenBeforePip) {
+                _playerLayer.frame = [UIScreen mainScreen].bounds;
+            } else {
+                _playerLayer.frame = _lastPlayerLayerFrame;
+            }
+
+            _playerLayer.videoGravity = AVLayerVideoGravityResizeAspect;
         }
     }
 
-    // jeśli wideo grało przed PiP, wznowimy je po powrocie
+    if (_wasFullscreenBeforePip) {
+    _playerLayer.frame = [UIScreen mainScreen].bounds;
+} else {
+    _playerLayer.frame = _lastPlayerLayerFrame;
+}
+
     if (_wasPlayingBeforePip) {
         [self play];
     } else {
@@ -751,8 +797,16 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)pictureInPictureControllerDidStartPictureInPicture:(AVPictureInPictureController *)pictureInPictureController  API_AVAILABLE(ios(9.0)){
-    _wasPlayingBeforePip = _isPlaying; // zapamiętaj czy wideo grało przed PiP
+    //  NSLog(@"[BetterPlayer] Entered PiP. wasFullscreenBeforePip = %@", _wasFullscreenBeforePip ? @"YES" : @"NO");
+    // _wasPlayingBeforePip = _isPlaying;
+    // _lastPlayerLayerFrame = _playerLayer.frame; // zapamiętaj aktualny frame
+    // _wasFullscreenBeforePip = CGRectEqualToRect(_playerLayer.frame, [UIScreen mainScreen].bounds);
 
+    // if (_eventSink != nil) {
+    //     _eventSink(@{@"event" : @"pipStart"});
+    // }
+
+    NSLog(@"[BetterPlayer] Entered PiP. wasFullscreenBeforePip = %@", _wasFullscreenBeforePip ? @"YES" : @"NO");
     if (_eventSink != nil) {
         _eventSink(@{@"event" : @"pipStart"});
     }
@@ -798,15 +852,34 @@ restoreUserInterfaceForPictureInPictureStopWithCompletionHandler:(void (^)(BOOL)
 #pragma mark - App lifecycle helper
 
 - (void)onAppDidBecomeActive:(NSNotification *)notification {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        UIWindow *keyWindow = UIApplication.sharedApplication.keyWindow;
+    NSLog(@"[BetterPlayer] onAppDidBecomeActive called. gWasFullscreenBeforePip=%@ gWasPlayingBeforePip=%@",
+          gWasFullscreenBeforePip ? @"YES" : @"NO",
+          gWasPlayingBeforePip ? @"YES" : @"NO");
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        UIWindow *keyWindow = UIApplication.sharedApplication.keyWindow ?: UIApplication.sharedApplication.windows.firstObject;
         UIViewController *rootVC = keyWindow.rootViewController;
-        if (_playerLayer && rootVC && rootVC.view) {
-            if (_playerLayer.superlayer == nil) {
-                [rootVC.view.layer addSublayer:_playerLayer];
-            }
-            _playerLayer.frame = rootVC.view.bounds;
-            _playerLayer.videoGravity = AVLayerVideoGravityResizeAspect;
+        if (!rootVC || !rootVC.view || !_playerLayer) return;
+
+        if (_playerLayer.superlayer == nil) {
+            [rootVC.view.layer addSublayer:_playerLayer];
+        }
+
+        if (gWasFullscreenBeforePip) {
+            NSLog(@"[BetterPlayer] Restoring fullscreen frame after PiP");
+            _playerLayer.frame = [UIScreen mainScreen].bounds;
+        } else {
+            NSLog(@"[BetterPlayer] Restoring last frame after PiP: %@", NSStringFromCGRect(_lastPlayerLayerFrame));
+            _playerLayer.frame = _lastPlayerLayerFrame;
+        }
+
+        _playerLayer.videoGravity = AVLayerVideoGravityResizeAspect;
+        [rootVC.view setNeedsLayout];
+        [rootVC.view layoutIfNeeded];
+
+        if (gWasPlayingBeforePip) {
+            NSLog(@"[BetterPlayer] Resuming playback after PiP and foreground");
+            [self play];
         }
     });
 }
