@@ -352,8 +352,7 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                   const Spacer(),
                   if (defaultTargetPlatform == TargetPlatform.iOS && !_controlsConfiguration.useModernDesignControls)
                     _buildAirplayButton(),
-                  if (defaultTargetPlatform == TargetPlatform.android && _controlsConfiguration.useModernDesignControls)
-                    _buildChromeCastButton(),
+                  if (_controlsConfiguration.useModernDesignControls) _buildChromeCastButton(),
                   if (_controlsConfiguration.enableMute) _buildMuteButton(_controller) else const SizedBox(),
                   if (_controlsConfiguration.useModernDesignControls)
                     Padding(
@@ -457,10 +456,10 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
             Padding(
               padding: EdgeInsets.only(
                 left: betterPlayerController!.isFullScreen
-                    ? 68
+                    ? 78
                     : betterPlayerController!.betterPlayerRestartTvConfiguration != null &&
                             betterPlayerController!.isLiveStream()
-                        ? 40
+                        ? 50
                         : 0,
               ),
               child: _buildRestart(_controller!),
@@ -660,18 +659,10 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                 size: 42,
                 color: _controlsConfiguration.iconsColor,
               ),
-        onClicked: () {
+        onClicked: () async {
           if (isFinished) {
-            if (_latestValue != null && _latestValue!.isPlaying) {
-              if (_displayTapped) {
-                changePlayerControlsNotVisible(true);
-              } else {
-                cancelAndRestartTimer();
-              }
-            } else {
-              _onPlayPause();
-              changePlayerControlsNotVisible(true);
-            }
+            await controller.seekTo(Duration.zero);
+            await controller.play();
           } else {
             _onPlayPause();
           }

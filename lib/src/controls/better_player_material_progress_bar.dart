@@ -129,8 +129,8 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
           width: MediaQuery.of(context).size.width,
           child: CustomPaint(
             painter: widget.isContentLive
-                ? _LiveProgressbarPainter(_getValue(), widget.colors)
-                : _ProgressBarPainter(_getValue(), widget.colors),
+                ? _LiveProgressbarPainter(_getValue(), widget.colors, betterPlayerController)
+                : _ProgressBarPainter(_getValue(), widget.colors, betterPlayerController),
           ),
         ),
       ),
@@ -138,7 +138,8 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
   }
 
   void _setupUpdateBlockTimer() {
-    if (Platform.isIOS) {
+    final isLive = betterPlayerController?.isLiveStream() ?? false;
+    if (Platform.isIOS && isLive) {
       _updateBlockTimer?.cancel();
       _updateBlockTimer = Timer(const Duration(milliseconds: 500), () {
         lastSeek = null;
@@ -166,7 +167,8 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
   }
 
   VideoPlayerValue _getValue() {
-    if (Platform.isIOS) {
+    final isLive = betterPlayerController?.isLiveStream() ?? false;
+    if (Platform.isIOS && isLive) {
       if (_blockProgressUpdatesUntil != null && DateTime.now().isBefore(_blockProgressUpdatesUntil!)) {
         return controller!.value.copyWith(position: lastSeek);
       }
@@ -181,7 +183,8 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
   }
 
   void seekToRelativePosition(Offset globalPosition) async {
-    if (Platform.isIOS) {
+    final isLive = betterPlayerController?.isLiveStream() ?? false;
+    if (Platform.isIOS && isLive) {
       final box = context.findRenderObject() as RenderBox;
       final double relative = (box.globalToLocal(globalPosition).dx / box.size.width).clamp(0.0, 1.0);
 
@@ -239,10 +242,12 @@ class _ProgressBarPainter extends CustomPainter {
 
   final VideoPlayerValue _value;
   final BetterPlayerProgressColors _colors;
+  final BetterPlayerController? controller;
 
   _ProgressBarPainter(
     this._value,
-    this._colors, {
+    this._colors,
+    this.controller, {
     double progressBarHeightPx = 2,
     double indicatorScaleFactor = 3,
     double roundRadius = 4,
@@ -272,7 +277,8 @@ class _ProgressBarPainter extends CustomPainter {
   }
 
   void _drawActualProgressBar(Canvas canvas, Size size) {
-    if (Platform.isIOS) {
+    final isLive = controller?.isLiveStream() ?? false;
+    if (Platform.isIOS && isLive) {
       // Use DVR if available
       final int dvrStartMs = (_value.dvrStart as Duration?)?.inMilliseconds ?? 0;
       final int dvrEndMs = (_value.dvrEnd as Duration?)?.inMilliseconds ?? _value.duration!.inMilliseconds;
@@ -373,7 +379,8 @@ class _LiveProgressbarPainter extends _ProgressBarPainter {
   _LiveProgressbarPainter(
     VideoPlayerValue value,
     BetterPlayerProgressColors colors,
-  ) : super(value, colors);
+    BetterPlayerController? controller,
+  ) : super(value, colors, controller);
 
   @override
   void _drawActualProgressBar(Canvas canvas, Size size) {
@@ -415,7 +422,8 @@ class _LiveProgressbarPainter extends _ProgressBarPainter {
 
   //make sure that progress is not minus or more than 100%. This can only apply for live content.
   double _getLiveContentProgress() {
-    if (Platform.isIOS) {
+    final isLive = controller?.isLiveStream() ?? false;
+    if (Platform.isIOS && isLive) {
       final double startMs = (_value.dvrStart as Duration?)?.inMilliseconds.toDouble() ?? 0.0;
       final double endMs =
           (_value.dvrEnd as Duration?)?.inMilliseconds.toDouble() ?? _value.duration!.inMilliseconds.toDouble();
