@@ -217,9 +217,7 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                     const Spacer(),
                     if (defaultTargetPlatform == TargetPlatform.iOS && _controlsConfiguration.useModernDesignControls)
                       _buildAirplayButton(),
-                    if (defaultTargetPlatform == TargetPlatform.android &&
-                        _controlsConfiguration.useModernDesignControls)
-                      _buildChromeCastButton(),
+                    if (_controlsConfiguration.useModernDesignControls) _buildChromeCastButton(),
                     if (_controlsConfiguration.enablePip)
                       _buildPipButtonWrapperWidget(controlsNotVisible, _onPlayerHide)
                     else
@@ -350,9 +348,6 @@ class _BetterPlayerMaterialControlsState extends BetterPlayerControlsState<Bette
                       ? Expanded(flex: 6, child: _buildPosition())
                       : const SizedBox(),
                   const Spacer(),
-                  if (defaultTargetPlatform == TargetPlatform.iOS && !_controlsConfiguration.useModernDesignControls)
-                    _buildAirplayButton(),
-                  if (_controlsConfiguration.useModernDesignControls) _buildChromeCastButton(),
                   if (_controlsConfiguration.enableMute) _buildMuteButton(_controller) else const SizedBox(),
                   if (_controlsConfiguration.useModernDesignControls)
                     Padding(
