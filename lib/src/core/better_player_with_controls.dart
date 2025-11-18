@@ -222,12 +222,18 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
     }
 
     final currentPosition = videoController!.value.position.inMilliseconds;
-    final timeEndVideo = videoController!.value.duration!.inMilliseconds;
+    final timeEndVideo = videoController.value.duration!.inMilliseconds;
     final showBeforeEndMillis =
         timeEndVideo - betterPlayerController.betterPlayerPlayNextVideoConfiguration!.showBeforeEndMillis;
     final hidePlayNextButton = timeEndVideo -
         betterPlayerController.betterPlayerPlayNextVideoConfiguration!.showBeforeEndMillis +
         betterPlayerController.betterPlayerPlayNextVideoConfiguration!.autoSwitchToNextMillis;
+
+    if (currentPosition >= showBeforeEndMillis) {
+      if ((currentPosition / hidePlayNextButton) > 0.990) {
+        betterPlayerController.betterPlayerPlayNextVideoConfiguration?.onPlayNext?.call();
+      }
+    }
 
     return (currentPosition >= showBeforeEndMillis) ? currentPosition / hidePlayNextButton : 0.0;
   }
