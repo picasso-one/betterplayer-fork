@@ -91,8 +91,8 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: "42a085471428df948b6796bb833c6396166272de"
-      url: "https://github.com/arash-flutter/flutter_cast_video.git"
+      resolved-ref: "0cfc0f648e83a6347ef86e0fa1c3d611ba5b975b"
+      url: "https://github.com/picasso-one/flutter_cast_video.git"
     source: git
     version: "1.2.0"
   flutter_localizations:
