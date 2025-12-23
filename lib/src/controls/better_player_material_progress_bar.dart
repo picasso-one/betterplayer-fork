@@ -162,7 +162,12 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
 
   int clampPosition(int targetMs) {
     final int dvrStartMs = controller!.value.dvrStart.inMilliseconds ?? 0;
-    final int dvrEndMs = controller!.value.dvrEnd.inMilliseconds ?? controller!.value.duration!.inMilliseconds;
+    final int dvrEndMs = controller?.value.dvrEnd.inMilliseconds ?? controller?.value.duration?.inMilliseconds ?? 0;
+
+    if (dvrEndMs <= dvrStartMs) {
+      return targetMs;
+    }
+
     return targetMs.clamp(dvrStartMs, dvrEndMs);
   }
 
@@ -259,10 +264,45 @@ class _ProgressBarPainter extends CustomPainter {
   @override
   bool shouldRepaint(CustomPainter painter) => _value.initialized;
 
+  double _safePlayedPart(Size size) {
+    final durationMs = _value.duration?.inMilliseconds ?? 0;
+
+    if (!_value.initialized || durationMs <= 0) {
+      return 0.0;
+    }
+
+    final positionMs = _value.position.inMilliseconds;
+    final percent = (positionMs / durationMs).clamp(0.0, 1.0);
+
+    return percent * size.width;
+  }
+
+  void _drawBufferedSafe(Canvas canvas, Size size) {
+    final duration = _value.duration;
+    if (duration == null || duration.inMilliseconds <= 0) return;
+
+    for (final range in _value.buffered) {
+      double start = range.startFraction(duration) * size.width;
+      double end = range.endFraction(duration) * size.width;
+
+      if (!start.isNaN && !end.isNaN) {
+        drawBufferedProgressBar(canvas, size, start, end);
+      }
+    }
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     _drawProgressBarBackground(canvas, size);
-    _drawActualProgressBar(canvas, size);
+
+    if (this is _LiveProgressbarPainter) {
+      _drawActualProgressBar(canvas, size);
+      return;
+    }
+    final playedPart = _safePlayedPart(size);
+    _drawPlayedProgressBar(canvas, size, playedPart);
+    _drawCurrentTimeIndicator(canvas, size, playedPart);
+    _drawBufferedSafe(canvas, size);
   }
 
   void _drawProgressBarBackground(Canvas canvas, Size size) {
@@ -277,6 +317,9 @@ class _ProgressBarPainter extends CustomPainter {
   }
 
   void _drawActualProgressBar(Canvas canvas, Size size) {
+    if (_value.duration == null) return;
+    if (_value.duration!.inMilliseconds <= 0) return;
+
     final isLive = controller?.isLiveStream() ?? false;
     if (Platform.isIOS && isLive) {
       // Use DVR if available
@@ -285,7 +328,12 @@ class _ProgressBarPainter extends CustomPainter {
       final int positionMs = _value.position.inMilliseconds;
 
       // Calculate played part percent based on DVR
-      double playedPartPercent = ((positionMs - dvrStartMs) / (dvrEndMs - dvrStartMs)).clamp(0.0, 1.0);
+      final durationMs = _value.duration?.inMilliseconds ?? 0;
+      if (durationMs <= 0) return;
+
+      double playedPartPercent = _value.position.inMilliseconds / durationMs;
+
+      playedPartPercent = playedPartPercent.clamp(0.0, 1.0);
       final double playedPart = playedPartPercent * size.width;
 
       // Draw buffered ranges based on DVR
@@ -422,16 +470,41 @@ class _LiveProgressbarPainter extends _ProgressBarPainter {
 
   //make sure that progress is not minus or more than 100%. This can only apply for live content.
   double _getLiveContentProgress() {
-    final isLive = controller?.isLiveStream() ?? false;
-    if (Platform.isIOS && isLive) {
-      final double startMs = (_value.dvrStart as Duration?)?.inMilliseconds.toDouble() ?? 0.0;
-      final double endMs =
-          (_value.dvrEnd as Duration?)?.inMilliseconds.toDouble() ?? _value.duration!.inMilliseconds.toDouble();
-      final int positionMs = _value.position.inMilliseconds.toInt();
+    // final isLive = controller?.isLiveStream() ?? false;
+    // if (Platform.isIOS && isLive) {
+    //   final double startMs = (_value.dvrStart as Duration?)?.inMilliseconds.toDouble() ?? 0.0;
+    //   final double endMs =
+    //       (_value.dvrEnd as Duration?)?.inMilliseconds.toDouble() ?? _value.duration!.inMilliseconds.toDouble();
+    //   final int positionMs = _value.position.inMilliseconds.toInt();
 
-      return ((positionMs - startMs) / (endMs - startMs)).clamp(0.0, 1.0);
-    } else {
-      return (_value.position.inMilliseconds / _value.duration!.inMilliseconds).clamp(0, 1);
+    //   return ((positionMs - startMs) / (endMs - startMs)).clamp(0.0, 1.0);
+    // } else {
+    //   return (_value.position.inMilliseconds / _value.duration!.inMilliseconds).clamp(0, 1);
+    // }
+
+    final isLive = controller?.isLiveStream() ?? false;
+
+    if (!isLive) return 0.0;
+
+    // iOS LIVE – DVR window
+    if (Platform.isIOS) {
+      final dvrStartMs = _value.dvrStart.inMilliseconds;
+      final dvrEndMs = _value.dvrEnd.inMilliseconds;
+      final positionMs = _value.position.inMilliseconds;
+
+      if (dvrEndMs <= dvrStartMs) {
+        return 1.0;
+      }
+
+      return ((positionMs - dvrStartMs) / (dvrEndMs - dvrStartMs)).clamp(0.0, 1.0);
     }
+
+    // Android / inne
+    final durationMs = _value.duration?.inMilliseconds;
+    if (durationMs == null || durationMs <= 0) {
+      return 1.0; // LIVE EDGE
+    }
+
+    return (_value.position.inMilliseconds / durationMs).clamp(0.0, 1.0);
   }
 }
