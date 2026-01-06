@@ -269,6 +269,7 @@ class BetterPlayerController {
     postEvent(BetterPlayerEvent(BetterPlayerEventType.setupDataSource, parameters: <String, dynamic>{
       _dataSourceParameter: betterPlayerDataSource,
     }));
+
     _postControllerEvent(BetterPlayerControllerEvent.setupDataSource);
     _hasCurrentDataSourceStarted = false;
     _hasCurrentDataSourceInitialized = false;
