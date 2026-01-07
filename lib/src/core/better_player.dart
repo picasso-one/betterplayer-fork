@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:better_player/better_player.dart';
 import 'package:better_player/src/configuration/better_player_controller_event.dart';
 import 'package:better_player/src/core/better_player_utils.dart';
@@ -134,6 +135,10 @@ class _BetterPlayerState extends State<BetterPlayer> with WidgetsBindingObserver
       _controllerEventSubscription = widget.controller.controllerEventStream.listen(onControllerEvent);
     }
 
+    if (_lastUrl != null && _lastUrl != _controller.betterPlayerDataSource?.url) {
+      _startDurationCheckTimer();
+    }
+
     super.didUpdateWidget(oldWidget);
   }
 
@@ -158,18 +163,14 @@ class _BetterPlayerState extends State<BetterPlayer> with WidgetsBindingObserver
     if (_lastUrl == _controller.betterPlayerDataSource?.url) {
       return Future.value();
     }
-    _durationCheckTimer?.cancel();
+    //_durationCheckTimer?.cancel();
     isVideoContent = true;
+    if (Platform.isIOS) {
+      await _controller.clearCache();
+
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
     _lastUrl = _controller.betterPlayerDataSource?.url;
-    _durationCheckTimer = Timer(const Duration(seconds: 5), () async {
-      final duration = widget.controller.videoPlayerController?.value.duration;
-      final isBuffered = widget.controller.videoPlayerController?.value.buffered.isEmpty ?? false;
-      if ((duration == null || isBuffered) && mounted) {
-        _isFullScreen = false;
-        isVideoContent = false;
-        widget.controller.exitFullScreen();
-      }
-    });
   }
 
   // ignore: avoid_void_async
