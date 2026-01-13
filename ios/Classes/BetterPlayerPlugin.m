@@ -119,6 +119,29 @@ bool _remoteCommandsInitialized = false;
     [[UIApplication sharedApplication] endReceivingRemoteControlEvents];
 }
 
+- (void)seekToDVRPosition:(BetterPlayer*)player {
+    if (!player.beginOffsetMs) return;
+
+    AVPlayerItem *item = player.player.currentItem;
+    Float64 dvrStart = 0, dvrEnd = 0;
+
+    if ([self isDvrStream:item dvrStart:&dvrStart dvrEnd:&dvrEnd]) {
+        Float64 offsetSeconds = player.beginOffsetMs.doubleValue / 1000.0;
+        Float64 targetSeconds = dvrStart + offsetSeconds;
+
+        if (targetSeconds < dvrStart) targetSeconds = dvrStart;
+        if (targetSeconds > dvrEnd)   targetSeconds = dvrEnd;
+
+        CMTime seekTime = CMTimeMakeWithSeconds(targetSeconds, NSEC_PER_SEC);
+        [player.player seekToTime:seekTime
+                  toleranceBefore:kCMTimeZero
+                   toleranceAfter:kCMTimeZero
+                completionHandler:^(BOOL finished){
+            NSLog(@"[DVR SEEK] seek completed to %.2f", CMTimeGetSeconds(seekTime));
+        }];
+    }
+}
+
 
 - (void) setupRemoteCommands:(BetterPlayer*)player  {
     if (_remoteCommandsInitialized){
@@ -138,18 +161,19 @@ bool _remoteCommandsInitialized = false;
         if (_notificationPlayer != [NSNull null]){
             NSArray *seekableRanges = player.player.currentItem.seekableTimeRanges;
 Float64 dvrStart = 0;
-Float64 dvrEnd = CMTimeGetSeconds(player.player.currentItem.duration);
+CMTimeRange range = [seekableRanges.lastObject CMTimeRangeValue];
+Float64 dvrEnd = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
 if (seekableRanges.count > 0) {
-    CMTimeRange range = [seekableRanges.lastObject CMTimeRangeValue];
+   
     dvrStart = CMTimeGetSeconds(range.start);
     dvrEnd   = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
 }
             if (_notificationPlayer.isPlaying){
-                _notificationPlayer.eventSink(@{@"event" : @"play",@"dvrStart": @((int64_t)(dvrStart * 1000)),
-   @"dvrEnd": @((int64_t)(dvrEnd * 1000)),});
+                _notificationPlayer.eventSink(@{@"event" : @"play",
+   });
             } else {
-                _notificationPlayer.eventSink(@{@"event" : @"pause",@"dvrStart": @((int64_t)(dvrStart * 1000)),
-   @"dvrEnd": @((int64_t)(dvrEnd * 1000)),});
+                _notificationPlayer.eventSink(@{@"event" : @"pause",
+   });
             }
         }
         return MPRemoteCommandHandlerStatusSuccess;
@@ -159,14 +183,14 @@ if (seekableRanges.count > 0) {
         if (_notificationPlayer != [NSNull null]){
             NSArray *seekableRanges = player.player.currentItem.seekableTimeRanges;
 Float64 dvrStart = 0;
-Float64 dvrEnd = CMTimeGetSeconds(player.player.currentItem.duration);
+CMTimeRange range = [seekableRanges.lastObject CMTimeRangeValue];
+Float64 dvrEnd = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
 if (seekableRanges.count > 0) {
-    CMTimeRange range = [seekableRanges.lastObject CMTimeRangeValue];
+   
     dvrStart = CMTimeGetSeconds(range.start);
     dvrEnd   = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
 }
-            _notificationPlayer.eventSink(@{@"event" : @"play",@"dvrStart": @((int64_t)(dvrStart * 1000)),
-   @"dvrEnd": @((int64_t)(dvrEnd * 1000)),});
+            _notificationPlayer.eventSink(@{@"event" : @"play",});
         }
         return MPRemoteCommandHandlerStatusSuccess;
     }];
@@ -175,14 +199,14 @@ if (seekableRanges.count > 0) {
         if (_notificationPlayer != [NSNull null]){
             NSArray *seekableRanges = player.player.currentItem.seekableTimeRanges;
 Float64 dvrStart = 0;
-Float64 dvrEnd = CMTimeGetSeconds(player.player.currentItem.duration);
+CMTimeRange range = [seekableRanges.lastObject CMTimeRangeValue];
+Float64 dvrEnd = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
 if (seekableRanges.count > 0) {
-    CMTimeRange range = [seekableRanges.lastObject CMTimeRangeValue];
+ 
     dvrStart = CMTimeGetSeconds(range.start);
     dvrEnd   = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
 }
-            _notificationPlayer.eventSink(@{@"event" : @"pause",@"dvrStart": @((int64_t)(dvrStart * 1000)),
-   @"dvrEnd": @((int64_t)(dvrEnd * 1000)),});
+            _notificationPlayer.eventSink(@{@"event" : @"pause",});
         }
         return MPRemoteCommandHandlerStatusSuccess;
     }];
@@ -192,20 +216,21 @@ if (seekableRanges.count > 0) {
     if (@available(iOS 9.1, *)) {
         [commandCenter.changePlaybackPositionCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
             if (_notificationPlayer != [NSNull null]){
-                MPChangePlaybackPositionCommandEvent * playbackEvent = (MPChangePlaybackRateCommandEvent * ) event;
+                MPChangePlaybackPositionCommandEvent *playbackEvent =
+    (MPChangePlaybackPositionCommandEvent *)event;
                 CMTime time = CMTimeMake(playbackEvent.positionTime, 1);
                 int64_t millis = [BetterPlayerTimeUtils FLTCMTimeToMillis:(time)];
                 [_notificationPlayer seekTo: millis];
                 NSArray *seekableRanges = player.player.currentItem.seekableTimeRanges;
 Float64 dvrStart = 0;
-Float64 dvrEnd = CMTimeGetSeconds(player.player.currentItem.duration);
+CMTimeRange range = [seekableRanges.lastObject CMTimeRangeValue];
+Float64 dvrEnd = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
 if (seekableRanges.count > 0) {
-    CMTimeRange range = [seekableRanges.lastObject CMTimeRangeValue];
+ 
     dvrStart = CMTimeGetSeconds(range.start);
     dvrEnd   = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
 }
-//                 _notificationPlayer.eventSink(@{@"event" : @"seek", @"position": @(millis),@"dvrStart": @((int64_t)(dvrStart * 1000)),
-//    @"dvrEnd": @((int64_t)(dvrEnd * 1000)),});
+                _notificationPlayer.eventSink(@{@"event" : @"seek", @"position": @(millis),});
             }
             return MPRemoteCommandHandlerStatusSuccess;
         }];
@@ -317,6 +342,51 @@ if (seekableRanges.count > 0) {
 
 }
 
+- (BOOL)isDvrStream:(AVPlayerItem *)item
+           dvrStart:(Float64 *)outStart
+             dvrEnd:(Float64 *)outEnd {
+
+    if (!item) {
+        NSLog(@"[DVR] item == nil");
+        return NO;
+    }
+
+    NSArray *ranges = item.seekableTimeRanges;
+    NSLog(@"[DVR] seekableTimeRanges count = %lu", (unsigned long)ranges.count);
+
+    if (ranges.count == 0) {
+        NSLog(@"[DVR] NO DVR – empty seekableTimeRanges");
+        return NO;
+    }
+
+    CMTimeRange range = [ranges.lastObject CMTimeRangeValue];
+    Float64 start = CMTimeGetSeconds(range.start);
+    Float64 end   = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
+    Float64 duration = CMTimeGetSeconds(item.duration);
+    BOOL durationValid = isfinite(duration) && duration > 0;
+
+    NSLog(@"[DVR] RAW start=%f end=%f duration=%f",
+          start, end, duration);
+
+    BOOL looksLikeVod =
+    fabs(start) < 0.5 &&
+    durationValid &&
+    fabs(end - duration) < 1.0;
+
+    NSLog(@"[DVR] looksLikeVod=%@", looksLikeVod ? @"YES" : @"NO");
+
+    if (looksLikeVod) {
+        NSLog(@"[DVR] -> VOD detected");
+        return NO;
+    }
+
+    if (outStart) *outStart = start;
+    if (outEnd)   *outEnd   = end;
+
+    NSLog(@"[DVR] -> DVR detected start=%f end=%f", start, end);
+    return YES;
+}
+
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
     
@@ -383,7 +453,26 @@ if (seekableRanges.count > 0) {
                     [player setDataSourceAsset:assetPath withKey:key withCertificateUrl:certificateUrl withLicenseUrl: licenseUrl cacheKey:cacheKey cacheManager:_cacheManager overriddenDuration:overriddenDuration];
                 } else if (uriArg) {
                     //MGR: pass DRM headers
-                   [player setDataSourceURL:[NSURL URLWithString:uriArg] withKey:key withCertificateUrl:certificateUrl withLicenseUrl: licenseUrl withHeaders:headers withDrmHeaders:drmHeaders withCache: useCache cacheKey:cacheKey cacheManager:_cacheManager overriddenDuration:overriddenDuration videoExtension: videoExtension];
+                  [player setDataSourceURL:[NSURL URLWithString:uriArg]
+                      withKey:key
+              withCertificateUrl:certificateUrl
+                 withLicenseUrl:licenseUrl
+                     withHeaders:headers
+                  withDrmHeaders:drmHeaders
+                       withCache:useCache
+                        cacheKey:cacheKey
+                     cacheManager:_cacheManager
+                overriddenDuration:overriddenDuration
+                     videoExtension:videoExtension];
+
+    // --- NOWOŚĆ: odczytaj begin z URL ---
+    NSURLComponents *components = [NSURLComponents componentsWithString:uriArg];
+    for (NSURLQueryItem *item in components.queryItems) {
+        if ([item.name isEqualToString:@"begin"]) {
+            player.beginOffsetMs = @([item.value longLongValue] * 1000); // w ms
+            break;
+        }
+    }
                 } else {
                     result(FlutterMethodNotImplemented);
                 }
@@ -422,66 +511,80 @@ if (seekableRanges.count > 0) {
             } else if ([@"play" isEqualToString:call.method]) {
                 [self setupRemoteNotification:player];
                 [player play];
+
+                if (player.beginOffsetMs) {
+    [self performSelector:@selector(seekToDVRPosition:)
+               withObject:player
+               afterDelay:0.2]; // małe opóźnienie, żeby item zdążył się załadować
+}
                 result(nil);
             } else if ([@"position" isEqualToString:call.method]) {
                 result(@([player position]));
             } else if ([@"absolutePosition" isEqualToString:call.method]) {
                 result(@([player absolutePosition]));
             } else if ([@"seekTo" isEqualToString:call.method]) {
-             int location = [argsMap[@"location"] intValue]; // offset w ms od początku DVR
-
+          int locationMs = [argsMap[@"location"] intValue];
+          NSLog(@"[seekTo] requested location(ms)=%d", locationMs);
     AVPlayerItem *item = player.player.currentItem;
-    if (!item) {
-        result(nil);
-        return;
+
+    Float64 dvrStart = 0;
+Float64 dvrEnd = 0;
+BOOL isDvr = [self isDvrStream:item dvrStart:&dvrStart dvrEnd:&dvrEnd];
+
+NSLog(@"[seekTo] isDvr=%@ dvrStart=%f dvrEnd=%f",
+      isDvr ? @"YES" : @"NO", dvrStart, dvrEnd);
+
+    CMTime seekTime;
+
+    if (isDvr) {
+        // DVR: location = offset od dvrStart
+       Float64 offset = locationMs / 1000.0;
+        Float64 targetSeconds = dvrStart + offset;
+
+        if (!isfinite(targetSeconds)) {
+            NSLog(@"[seekTo] invalid targetSeconds");
+            return;
+        }
+
+        if (targetSeconds < dvrStart) targetSeconds = dvrStart;
+        if (targetSeconds > dvrEnd)   targetSeconds = dvrEnd;
+
+        seekTime = CMTimeMakeWithSeconds(targetSeconds, NSEC_PER_SEC);
+        NSLog(@"[seekTo] seekTime seconds=%f",
+      CMTimeGetSeconds(seekTime));
+    } else {
+        // VOD: location = absolutny czas
+        seekTime = CMTimeMakeWithSeconds(locationMs / 1000.0, NSEC_PER_SEC);
+        NSLog(@"[seekTo] seekTime seconds=%f",
+      CMTimeGetSeconds(seekTime));
     }
-
-    NSArray *seekableRanges = item.seekableTimeRanges;
-    if (seekableRanges.count == 0) {
-        result(nil);
-        return;
-    }
-
-    // aktualne DVR window
-    CMTimeRange range = [seekableRanges.lastObject CMTimeRangeValue];
-    Float64 dvrStart = CMTimeGetSeconds(range.start);
-    Float64 dvrEnd   = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
-
-    // target seconds względem dvrStart
-    Float64 targetSeconds = dvrStart + (location / 1000.0);
-
-    // clampowanie do zakresu DVR
-    if (targetSeconds < dvrStart) targetSeconds = dvrStart;
-    if (targetSeconds > dvrEnd)   targetSeconds = dvrEnd;
-
-    CMTime seekTime = CMTimeMakeWithSeconds(targetSeconds, NSEC_PER_SEC);
 
     BOOL wasPlaying = player.isPlaying;
-    if (wasPlaying) {
-        [player pause];
-    }
+    if (wasPlaying) [player pause];
 
     [player.player seekToTime:seekTime
               toleranceBefore:kCMTimeZero
                toleranceAfter:kCMTimeZero
             completionHandler:^(BOOL finished) {
-        if (finished) {
-            // nowa pozycja w ms
-            int64_t millis = (int64_t)(targetSeconds * 1000);
+                NSLog(@"[seekTo] finished=%@", finished ? @"YES" : @"NO");
 
-            // wyślij event seekTo, żeby Flutter miał właściwą pozycję
-            player.eventSink(@{
-                @"event": @"seekTo",
-                @"position": @(millis),
-                @"dvrStart": @((int64_t)(dvrStart * 1000)),
-                @"dvrEnd":   @((int64_t)(dvrEnd * 1000)),
-            });
+        if (!finished) return;
 
-            // jeśli grał wcześniej, wznów
-            if (wasPlaying) {
-                [player play];
-            }
+        int64_t reportedMs;
+
+        if (isDvr) {
+            Float64 abs = CMTimeGetSeconds(seekTime);
+            reportedMs = (int64_t)((abs - dvrStart) * 1000);
+        } else {
+            reportedMs = locationMs;
         }
+
+        player.eventSink(@{
+            @"event": @"seekTo",
+            @"position": @(reportedMs),
+        });
+
+        if (wasPlaying) [player play];
     }];
 
     result(nil);
@@ -527,14 +630,15 @@ if (seekableRanges.count > 0) {
                toleranceAfter:kCMTimeZero
             completionHandler:^(BOOL finished) {
         Float64 newSeconds = CMTimeGetSeconds(newTime);
-        int64_t millis = (int64_t)(newSeconds * 1000);
+        Float64 positionFromStart = newSeconds - dvrStart;
+        int64_t millis = (int64_t)(positionFromStart * 1000);
 
         // Wyślij event z aktualną pozycją i DVR window
         player.eventSink(@{
             @"event": @"position",
             @"position": @(millis),
-            @"dvrStart": @((int64_t)(dvrStart * 1000)),
-            @"dvrEnd": @((int64_t)(dvrEnd * 1000)),
+            // @"dvrStart": @((int64_t)(dvrStart * 1000)),
+            // @"dvrEnd": @((int64_t)(dvrEnd * 1000)),
         });
 
         // Wznów odtwarzanie jeśli wcześniej grał
@@ -573,9 +677,10 @@ if (seekableRanges.count > 0) {
     // seek
    
 Float64 dvrStart = 0;
-Float64 dvrEnd = CMTimeGetSeconds(player.player.currentItem.duration);
+
+Float64 dvrEnd = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
 if (seekableRanges.count > 0) {
-    CMTimeRange range = [seekableRanges.lastObject CMTimeRangeValue];
+   
     dvrStart = CMTimeGetSeconds(range.start);
     dvrEnd   = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
 }
@@ -584,44 +689,42 @@ if (seekableRanges.count > 0) {
                toleranceAfter:kCMTimeZero
             completionHandler:^(BOOL finished) {
         Float64 newSeconds = CMTimeGetSeconds(newTime);
-        int64_t millis = (int64_t)(newSeconds * 1000);
+        Float64 positionFromStart = newSeconds - dvrStart;
+        int64_t millis = (int64_t)(positionFromStart * 1000);
         player.eventSink(@{
    @"event": @"position",
    @"position": @(millis),
-   @"dvrStart": @((int64_t)(dvrStart * 1000)),
-   @"dvrEnd": @((int64_t)(dvrEnd * 1000)),
+//    @"dvrStart": @((int64_t)(dvrStart * 1000)),
+//    @"dvrEnd": @((int64_t)(dvrEnd * 1000)),
 });
     }];
 
     result(nil);
             } else if ([@"dvrWindow" isEqualToString:call.method]) {
+                NSLog(@"[dvrWindow] requested");
     AVPlayerItem *item = player.player.currentItem;
-    if (!item) {
+    Float64 dvrStart = 0;
+    Float64 dvrEnd = 0;
+
+    BOOL isDvr = [self isDvrStream:item dvrStart:&dvrStart dvrEnd:&dvrEnd];
+    NSLog(@"[dvrWindow] isDvr=%@", isDvr ? @"YES" : @"NO");
+
+    if (!isDvr) {
         result(nil);
         return;
     }
 
-    NSArray *seekableRanges = item.seekableTimeRanges;
-    if (seekableRanges.count == 0) {
-        result(nil);
-        return;
-    }
-
-    CMTimeRange range = [seekableRanges.lastObject CMTimeRangeValue];
-
-    Float64 dvrStart = CMTimeGetSeconds(range.start);
-    Float64 dvrEnd = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
-
-     player.eventSink(@{
-   @"event": @"dvrWindow",
-   
-   @"dvrStart": @((int64_t)(dvrStart * 1000)),
-   @"dvrEnd": @((int64_t)(dvrEnd * 1000)),
-});
+    Float64 duration = dvrEnd - dvrStart;
 
     result(@{
-        @"dvrStart": @((int64_t)(dvrStart * 1000)),
-        @"dvrEnd": @((int64_t)(dvrEnd * 1000)),
+        @"dvrStart": @(0),
+        @"dvrEnd": @((int64_t)(duration * 1000)),
+    });
+
+    player.eventSink(@{
+        @"event": @"dvrWindow",
+        @"dvrStart": @(0),
+        @"dvrEnd": @((int64_t)(duration * 1000)),
     });
 }
             else if ([@"pause" isEqualToString:call.method]) {
