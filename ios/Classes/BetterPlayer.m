@@ -376,34 +376,61 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
                 if (_player.timeControlStatus == AVPlayerTimeControlStatusPaused){
                     _lastAvPlayerTimeControlStatus = _player.timeControlStatus;
                     if (_eventSink != nil) {
-                      _eventSink(@{@"event" : @"pause"});
+                        _eventSink(@{@"event" : @"pause"});
                     }
                     return;
                 }
                 if (_player.timeControlStatus == AVPlayerTimeControlStatusPlaying){
                     _lastAvPlayerTimeControlStatus = _player.timeControlStatus;
                     if (_eventSink != nil) {
-                      _eventSink(@{@"event" : @"play"});
+                        _eventSink(@{@"event" : @"play"});
                     }
                 }
             }
         }
 
-        if (_player.rate == 0 && //if player rate dropped to 0
-            CMTIME_COMPARE_INLINE(_player.currentItem.currentTime, >, kCMTimeZero) && //if video was started
-            CMTIME_COMPARE_INLINE(_player.currentItem.currentTime, <, _player.currentItem.duration) && //but not yet finished
-            _isPlaying) { //instance variable to handle overall state (changed to YES when user triggers playback)
+        if (_player.rate == 0 &&
+            CMTIME_COMPARE_INLINE(_player.currentItem.currentTime, >, kCMTimeZero) &&
+            CMTIME_COMPARE_INLINE(_player.currentItem.currentTime, <, _player.currentItem.duration) &&
+            _isPlaying) {
             [self handleStalled];
         }
     }
 
+    // --- DVR / seekable ranges ---
     if (context == timeRangeContext) {
+        AVPlayerItem *item = (AVPlayerItem*)object;
+        NSArray *seekableRanges = item.seekableTimeRanges;
+
+        if (seekableRanges.count > 0) {
+            CMTimeRange dvrRange = [seekableRanges.lastObject CMTimeRangeValue];
+            Float64 dvrStart = CMTimeGetSeconds(dvrRange.start);
+            Float64 dvrEnd   = CMTimeGetSeconds(CMTimeRangeGetEnd(dvrRange));
+
+            // tylko jeśli DVR jest sensowne (>0)
+            if (dvrEnd > dvrStart) {
+                NSLog(@"[DVR][loadedTimeRanges] start=%lldms end=%lldms",
+      dvrStart, dvrEnd);
+
+                if (_eventSink != nil) {
+                    _eventSink(@{
+                        @"event": @"dvrWindow",
+                        @"dvrStart": @((int64_t)(dvrStart * 1000)),
+                        @"dvrEnd": @((int64_t)(dvrEnd * 1000)),
+                        @"key": _key
+                    });
+                }
+            }
+        }
+
+        // Zaktualizuj buffering info
         if (_eventSink != nil) {
             NSMutableArray<NSArray<NSNumber*>*>* values = [[NSMutableArray alloc] init];
             for (NSValue* rangeValue in [object loadedTimeRanges]) {
                 CMTimeRange range = [rangeValue CMTimeRangeValue];
                 int64_t start = [BetterPlayerTimeUtils FLTCMTimeToMillis:(range.start)];
                 int64_t end = start + [BetterPlayerTimeUtils FLTCMTimeToMillis:(range.duration)];
+
                 if (!CMTIME_IS_INVALID(_player.currentItem.forwardPlaybackEndTime)) {
                     int64_t endTime = [BetterPlayerTimeUtils FLTCMTimeToMillis:(_player.currentItem.forwardPlaybackEndTime)];
                     if (end > endTime){
@@ -416,17 +443,18 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
             _eventSink(@{@"event" : @"bufferingUpdate", @"values" : values, @"key" : _key});
         }
     }
+
+    // --- Presentation size ready ---
     else if (context == presentationSizeContext){
         [self onReadyToPlay];
     }
 
+    // --- Player status ---
     else if (context == statusContext) {
         AVPlayerItem* item = (AVPlayerItem*)object;
         switch (item.status) {
             case AVPlayerItemStatusFailed:
-                NSLog(@"Failed to load video:");
-                NSLog(item.error.debugDescription);
-
+                NSLog(@"[BetterPlayer] Failed to load video: %@", item.error.debugDescription);
                 if (_eventSink != nil) {
                     _eventSink([FlutterError
                                 errorWithCode:@"VideoError"
@@ -441,7 +469,10 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
                 [self onReadyToPlay];
                 break;
         }
-    } else if (context == playbackLikelyToKeepUpContext) {
+    }
+
+    // --- Buffering states ---
+    else if (context == playbackLikelyToKeepUpContext) {
         if ([[_player currentItem] isPlaybackLikelyToKeepUp]) {
             [self updatePlayingState];
             if (_eventSink != nil) {
@@ -456,6 +487,26 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         if (_eventSink != nil) {
             _eventSink(@{@"event" : @"bufferingEnd", @"key" : _key});
         }
+    }
+}
+
+- (void)emitDvrWindow {
+   AVPlayerItem *item = self.player.currentItem;
+    if (!item) return;
+
+    NSArray *ranges = item.seekableTimeRanges;
+    if (ranges.count == 0) return;
+
+    CMTimeRange range = [ranges.lastObject CMTimeRangeValue];
+    Float64 start = CMTimeGetSeconds(range.start);
+    Float64 end   = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
+
+    if (_eventSink) {
+        _eventSink(@{
+            @"event": @"dvrWindow",
+            @"dvrStart": @((int64_t)(start * 1000)),
+            @"dvrEnd":   @((int64_t)(end * 1000)),
+        });
     }
 }
 
@@ -610,6 +661,8 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     Float64 dvrStart = CMTimeGetSeconds(range.start);
     Float64 dvrEnd   = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
 
+    NSLog(@"DVR Window: start = %f, end = %f", dvrStart, dvrEnd);
+
     // oblicz docelowy czas
     Float64 targetSeconds = dvrStart + (location / 1000.0);
 
@@ -635,8 +688,8 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
             self->_eventSink(@{
                 @"event": @"position",
                 @"position": @(millis),
-                @"dvrStart": @((int64_t)(dvrStart * 1000)),
-                @"dvrEnd": @((int64_t)(dvrEnd * 1000)),
+                // @"dvrStart": @((int64_t)(dvrStart * 1000)),
+                // @"dvrEnd": @((int64_t)(dvrEnd * 1000)),
                 @"key": self->_key
             });
         }
@@ -962,6 +1015,7 @@ restoreUserInterfaceForPictureInPictureStopWithCompletionHandler:(void (^)(BOOL)
     // TODO: remove the line below when race condition is resolved:
     // ensures the 'initialized' event is sent when AVPlayerItemStatusReadyToPlay fires before _eventSink is set
     [self onReadyToPlay];
+    [self emitDvrWindow];
     return nil;
 }
 

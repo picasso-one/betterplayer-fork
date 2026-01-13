@@ -71,8 +71,13 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
   Widget build(BuildContext context) {
     final bool enableProgressBarDrag =
         betterPlayerController!.betterPlayerConfiguration.controlsConfiguration.enableProgressBarDrag;
+    print("DVR WINDOW => dvrStart > ${controller?.value.dvrStart} dvrEnd > ${controller?.value.dvrEnd}");
+
+    final hasDvr = controller!.value.dvrEnd > controller!.value.dvrStart;
 
     final bool isLive = betterPlayerController?.isLiveStream() ?? false;
+    print("DVR WINDOW => dvrStart > ${controller?.value.dvrStart} dvrEnd > ${controller?.value.dvrEnd} isLive $isLive");
+
     return GestureDetector(
       onHorizontalDragStart: (DragStartDetails details) {
         if (!controller!.value.initialized || !enableProgressBarDrag) {
@@ -140,7 +145,8 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
 
   void _setupUpdateBlockTimer() {
     final isLive = betterPlayerController?.isLiveStream() ?? false;
-    if (Platform.isIOS && isLive) {
+    final hasDvr = controller!.value.dvrEnd > controller!.value.dvrStart;
+    if (Platform.isIOS && hasDvr) {
       _updateBlockTimer?.cancel();
       _updateBlockTimer = Timer(const Duration(milliseconds: 500), () {
         lastSeek = null;
@@ -168,21 +174,42 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
   }
 
   VideoPlayerValue _getValue() {
+    // final isLive = betterPlayerController?.isLiveStream() ?? false;
+    // final uri = Uri.tryParse(betterPlayerController!.betterPlayerDataSource!.url);
+    // final beginParam = uri?.queryParameters['begin'];
+    // final endParam = uri?.queryParameters['end'];
+    // if (Platform.isIOS && isLive) {
+    //   if (_blockProgressUpdatesUntil != null && DateTime.now().isBefore(_blockProgressUpdatesUntil!)) {
+    //     // return controller!.value.copyWith(position: lastSeek);
+    //     lastSeek = null;
+    //     _blockProgressUpdatesUntil = null;
+    //   }
+    //   return controller!.value;
+    // } else {
+    //   if (lastSeek != null) {
+    //     return controller!.value.copyWith(position: lastSeek);
+    //   } else {
+    //     return controller!.value;
+    //   }
+    // }
     final isLive = betterPlayerController?.isLiveStream() ?? false;
-    if (Platform.isIOS && isLive) {
-      if (_blockProgressUpdatesUntil != null && DateTime.now().isBefore(_blockProgressUpdatesUntil!)) {
-        // return controller!.value.copyWith(position: lastSeek);
-        lastSeek = null;
-        _blockProgressUpdatesUntil = null;
+    final hasDvr = controller!.value.dvrEnd > controller!.value.dvrStart;
+
+    if (Platform.isIOS && hasDvr) {
+      if (lastSeek != null &&
+          _blockProgressUpdatesUntil != null &&
+          DateTime.now().isBefore(_blockProgressUpdatesUntil!)) {
+        return controller!.value.copyWith(position: lastSeek);
       }
       return controller!.value;
-    } else {
-      if (lastSeek != null) {
-        return controller!.value.copyWith(position: lastSeek);
-      } else {
-        return controller!.value;
-      }
     }
+
+    if (lastSeek != null) {
+      return controller!.value.copyWith(position: lastSeek);
+    }
+
+    return controller!.value;
+
     //final bool isLive = betterPlayerController?.isLiveStream() ?? false;
 
     // if (_blockProgressUpdatesUntil != null && DateTime.now().isAfter(_blockProgressUpdatesUntil!)) {
@@ -201,7 +228,8 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
 
   void seekToRelativePosition(Offset globalPosition) async {
     final isLive = betterPlayerController?.isLiveStream() ?? false;
-    if (Platform.isIOS && isLive) {
+    final hasDvr = controller!.value.dvrEnd > controller!.value.dvrStart;
+    if (Platform.isIOS && hasDvr) {
       final box = context.findRenderObject() as RenderBox;
       final double relative = (box.globalToLocal(globalPosition).dx / box.size.width).clamp(0.0, 1.0);
 
@@ -211,7 +239,7 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
       final int targetMs = (dvrStart + relative * (dvrEnd - dvrStart)).toInt();
       lastSeek = Duration(milliseconds: clampPosition(targetMs));
 
-      _blockProgressUpdatesUntil = DateTime.now().add(const Duration(milliseconds: 700));
+      _blockProgressUpdatesUntil = DateTime.now().add(const Duration(milliseconds: 2000));
 
       try {
         await betterPlayerController!.seekTo(lastSeek!);
@@ -249,7 +277,7 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
     }
     if (Platform.isIOS) {
       // Resetuj lastSeek dopiero po małym delay, aby AVPlayer zakończył buffering
-      Future.delayed(const Duration(milliseconds: 500), () {
+      Future.delayed(const Duration(milliseconds: 1500), () {
         lastSeek = null;
         if (mounted) setState(() {}); // odśwież progress bar
       });
@@ -299,47 +327,106 @@ class _ProgressBarPainter extends CustomPainter {
     );
   }
 
+  // void _drawActualProgressBar(Canvas canvas, Size size) {
+  //   final isLive = controller?.isLiveStream() ?? false;
+  //   final uri = Uri.tryParse(controller!.betterPlayerDataSource!.url);
+  //   final beginParam = uri?.queryParameters['begin'];
+  //   final endParam = uri?.queryParameters['end'];
+  //   final isIOSRestartTV = Platform.isIOS && beginParam != null && endParam == null;
+  //   if ((Platform.isIOS && isLive) || isIOSRestartTV) {
+  //     // Use DVR if available
+  //     final int dvrStartMs = (_value.dvrStart as Duration?)?.inMilliseconds ?? 0;
+  //     final int dvrEndMs = (_value.dvrEnd as Duration?)?.inMilliseconds ?? _value.duration?.inMilliseconds ?? 0;
+  //     final int positionMs = _value.position.inMilliseconds;
+  //     final dvrWindow = (dvrEndMs - dvrStartMs);
+  //     if (dvrWindow <= 0) return;
+
+  //     // Calculate played part percent based on DVR
+  //     double playedPartPercent = ((positionMs - dvrStartMs) / dvrWindow).clamp(0.0, 1.0);
+  //     final double playedPart = playedPartPercent * size.width;
+
+  //     // Draw buffered ranges based on DVR
+  //     for (final DurationRange range in _value.buffered) {
+  //       double rangeStart = ((range.start.inMilliseconds - dvrStartMs) / dvrWindow * size.width).clamp(0.0, size.width);
+  //       double rangeEnd = ((range.end.inMilliseconds - dvrStartMs) / dvrWindow * size.width).clamp(0.0, size.width);
+  //       drawBufferedProgressBar(canvas, size, rangeStart, rangeEnd);
+  //     }
+
+  //     _drawPlayedProgressBar(canvas, size, playedPart);
+  //     _drawCurrentTimeIndicator(canvas, size, playedPart);
+  //   } else {
+  //     final durationInMs = _value.duration?.inMilliseconds ?? 0;
+  //     print("NOLive > duration ${_value.duration?.inMilliseconds} position > ${_value.position.inMilliseconds}");
+
+  //     double playedPartPercent = _value.position.inMilliseconds / durationInMs;
+  //     if (playedPartPercent.isNaN) {
+  //       playedPartPercent = 0;
+  //     }
+  //     final double playedPart = playedPartPercent > 1 ? size.width : playedPartPercent * size.width;
+
+  //     for (final DurationRange range in _value.buffered) {
+  //       double start = range.startFraction(_value.duration!) * size.width;
+  //       if (start.isNaN) {
+  //         start = 0;
+  //       }
+  //       double end = range.endFraction(_value.duration!) * size.width;
+  //       if (end.isNaN) {
+  //         end = 0;
+  //       }
+  //       drawBufferedProgressBar(canvas, size, start, end);
+  //     }
+
+  //     _drawPlayedProgressBar(canvas, size, playedPart);
+  //     _drawCurrentTimeIndicator(canvas, size, playedPart);
+  //   }
+  // }
+
   void _drawActualProgressBar(Canvas canvas, Size size) {
-    final isLive = controller?.isLiveStream() ?? false;
-    if (Platform.isIOS && isLive) {
-      // Use DVR if available
-      final int dvrStartMs = (_value.dvrStart as Duration?)?.inMilliseconds ?? 0;
-      final int dvrEndMs = (_value.dvrEnd as Duration?)?.inMilliseconds ?? _value.duration?.inMilliseconds ?? 0;
-      final int positionMs = _value.position.inMilliseconds;
-      final dvrWindow = (dvrEndMs - dvrStartMs);
+    final int positionMs = _value.position.inMilliseconds;
+
+    final int dvrStartMs = _value.dvrStart.inMilliseconds ?? 0;
+    final int dvrEndMs = _value.dvrEnd.inMilliseconds ?? 0;
+
+    final bool hasDvr = dvrEndMs > dvrStartMs;
+
+    if (hasDvr) {
+      // =========================
+      // DVR / CATCH-UP / LIVE DVR
+      // =========================
+      final int dvrWindow = dvrEndMs - dvrStartMs;
       if (dvrWindow <= 0) return;
 
-      // Calculate played part percent based on DVR
-      double playedPartPercent = ((positionMs - dvrStartMs) / dvrWindow).clamp(0.0, 1.0);
+      final double playedPartPercent = ((positionMs - dvrStartMs) / dvrWindow).clamp(0.0, 1.0);
+
       final double playedPart = playedPartPercent * size.width;
 
-      // Draw buffered ranges based on DVR
+      // Buffered ranges (DVR-based)
       for (final DurationRange range in _value.buffered) {
-        double rangeStart = ((range.start.inMilliseconds - dvrStartMs) / dvrWindow * size.width).clamp(0.0, size.width);
-        double rangeEnd = ((range.end.inMilliseconds - dvrStartMs) / dvrWindow * size.width).clamp(0.0, size.width);
+        final double rangeStart = ((range.start.inMilliseconds - dvrStartMs) / dvrWindow).clamp(0.0, 1.0) * size.width;
+
+        final double rangeEnd = ((range.end.inMilliseconds - dvrStartMs) / dvrWindow).clamp(0.0, 1.0) * size.width;
+
         drawBufferedProgressBar(canvas, size, rangeStart, rangeEnd);
       }
 
       _drawPlayedProgressBar(canvas, size, playedPart);
       _drawCurrentTimeIndicator(canvas, size, playedPart);
     } else {
-      final durationInMs = _value.duration?.inMilliseconds ?? 0;
+      // =========
+      // PURE VOD
+      // =========
+      final int durationMs = _value.duration?.inMilliseconds ?? 0;
+      if (durationMs <= 0) return;
 
-      double playedPartPercent = _value.position.inMilliseconds / durationInMs;
-      if (playedPartPercent.isNaN) {
-        playedPartPercent = 0;
-      }
-      final double playedPart = playedPartPercent > 1 ? size.width : playedPartPercent * size.width;
+      double playedPartPercent = positionMs / durationMs;
+      if (playedPartPercent.isNaN) playedPartPercent = 0;
+
+      final double playedPart = (playedPartPercent.clamp(0.0, 1.0)) * size.width;
 
       for (final DurationRange range in _value.buffered) {
-        double start = range.startFraction(_value.duration!) * size.width;
-        if (start.isNaN) {
-          start = 0;
-        }
-        double end = range.endFraction(_value.duration!) * size.width;
-        if (end.isNaN) {
-          end = 0;
-        }
+        final double start = (range.startFraction(_value.duration!) * size.width).clamp(0.0, size.width);
+        final double end = (range.endFraction(_value.duration!) * size.width).clamp(0.0, size.width);
+
         drawBufferedProgressBar(canvas, size, start, end);
       }
 
@@ -448,6 +535,7 @@ class _LiveProgressbarPainter extends _ProgressBarPainter {
   //make sure that progress is not minus or more than 100%. This can only apply for live content.
   double _getLiveContentProgress() {
     final isLive = controller?.isLiveStream() ?? false;
+    print("ProgresBar param => start ${_value.dvrStart} end ${_value.dvrEnd} isLive $isLive");
     if (Platform.isIOS && isLive) {
       final double startMs = (_value.dvrStart as Duration?)?.inMilliseconds.toDouble() ?? 0.0;
       final double endMs =

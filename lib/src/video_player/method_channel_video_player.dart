@@ -360,6 +360,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   @override
   Stream<VideoEvent> videoEventsFor(int? textureId) {
     return _eventChannelFor(textureId).receiveBroadcastStream().map((dynamic event) {
+      print("EventTutaj");
       late Map<dynamic, dynamic> map;
       if (event is Map) {
         map = event;
@@ -442,17 +443,20 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           );
 
         case 'position':
+          //  print("Wartosci dvr => ${map.containsKey("dvrStart")} ${map.containsKey("dvrEnd")}");
           return VideoEvent(
             eventType: VideoEventType.position,
             key: key,
             position: Duration(milliseconds: map['position'] as int),
-            dvrStart: map.containsKey("dvrStart") ? Duration(milliseconds: map["dvrStart"] as int) : null,
-            dvrEnd: map.containsKey("dvrEnd") ? Duration(milliseconds: map["dvrEnd"] as int) : null,
+            // dvrStart: map.containsKey("dvrStart") ? Duration(milliseconds: map["dvrStart"] as int) : null,
+            // dvrEnd: map.containsKey("dvrEnd") ? Duration(milliseconds: map["dvrEnd"] as int) : null,
           );
 
         case 'dvrWindow':
+          print(
+              "Wartosci dvr => ${Duration(milliseconds: map["dvrStart"] as int)} ${Duration(milliseconds: map["dvrEnd"] as int)}");
           return VideoEvent(
-            eventType: VideoEventType.position,
+            eventType: VideoEventType.dvrWindow,
             key: key,
             dvrStart: map.containsKey("dvrStart") ? Duration(milliseconds: map["dvrStart"] as int) : null,
             dvrEnd: map.containsKey("dvrEnd") ? Duration(milliseconds: map["dvrEnd"] as int) : null,
