@@ -369,7 +369,8 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     if ([path isEqualToString:@"rate"]) {
         if (@available(iOS 10.0, *)) {
             if (_pipController.pictureInPictureActive == true){
-                if (_lastAvPlayerTimeControlStatus != [NSNull null] && _lastAvPlayerTimeControlStatus == _player.timeControlStatus){
+                if (_lastAvPlayerTimeControlStatus != [NSNull null] &&
+                    _lastAvPlayerTimeControlStatus == _player.timeControlStatus){
                     return;
                 }
 
@@ -403,14 +404,17 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         NSArray *seekableRanges = item.seekableTimeRanges;
 
         if (seekableRanges.count > 0) {
+
+            // POPRAWKA: najpierw pobieramy dvrRange
             CMTimeRange dvrRange = [seekableRanges.lastObject CMTimeRangeValue];
+
             Float64 dvrStart = CMTimeGetSeconds(dvrRange.start);
             Float64 dvrEnd   = CMTimeGetSeconds(CMTimeRangeGetEnd(dvrRange));
 
-            // tylko jeśli DVR jest sensowne (>0)
             if (dvrEnd > dvrStart) {
                 NSLog(@"[DVR][loadedTimeRanges] start=%lldms end=%lldms",
-      dvrStart, dvrEnd);
+                      (int64_t)(dvrStart * 1000),
+                      (int64_t)(dvrEnd * 1000));
 
                 if (_eventSink != nil) {
                     _eventSink(@{
@@ -421,35 +425,41 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
                     });
                 }
             }
-        }
 
-        // Zaktualizuj buffering info
-        if (_eventSink != nil) {
-            NSMutableArray<NSArray<NSNumber*>*>* values = [[NSMutableArray alloc] init];
-            for (NSValue* rangeValue in [object loadedTimeRanges]) {
-                CMTimeRange range = [rangeValue CMTimeRangeValue];
-                int64_t start = [BetterPlayerTimeUtils FLTCMTimeToMillis:(range.start)];
-                int64_t end = start + [BetterPlayerTimeUtils FLTCMTimeToMillis:(range.duration)];
+            // BUFFERING UPDATE
+            if (_eventSink != nil) {
+                NSMutableArray<NSArray<NSNumber*>*>* values = [[NSMutableArray alloc] init];
 
-                if (!CMTIME_IS_INVALID(_player.currentItem.forwardPlaybackEndTime)) {
-                    int64_t endTime = [BetterPlayerTimeUtils FLTCMTimeToMillis:(_player.currentItem.forwardPlaybackEndTime)];
-                    if (end > endTime){
-                        end = endTime;
+                for (NSValue* rangeValue in [object loadedTimeRanges]) {
+                    CMTimeRange range = [rangeValue CMTimeRangeValue];
+                    int64_t start = [BetterPlayerTimeUtils FLTCMTimeToMillis:(range.start)];
+                    int64_t end = start + [BetterPlayerTimeUtils FLTCMTimeToMillis:(range.duration)];
+
+                    if (!CMTIME_IS_INVALID(_player.currentItem.forwardPlaybackEndTime)) {
+                        int64_t endTime = [BetterPlayerTimeUtils FLTCMTimeToMillis:(_player.currentItem.forwardPlaybackEndTime)];
+                        if (end > endTime){
+                            end = endTime;
+                        }
                     }
+
+                    [values addObject:@[ @(start), @(end) ]];
                 }
 
-                [values addObject:@[ @(start), @(end) ]];
+                _eventSink(@{
+                    @"event" : @"bufferingUpdate",
+                    @"values" : values,
+                    @"key" : _key,
+                    @"dvrStart": @((int64_t)(dvrStart * 1000)),
+                    @"dvrEnd": @((int64_t)(dvrEnd * 1000))
+                });
             }
-            _eventSink(@{@"event" : @"bufferingUpdate", @"values" : values, @"key" : _key});
         }
     }
 
-    // --- Presentation size ready ---
     else if (context == presentationSizeContext){
         [self onReadyToPlay];
     }
 
-    // --- Player status ---
     else if (context == statusContext) {
         AVPlayerItem* item = (AVPlayerItem*)object;
         switch (item.status) {
@@ -471,7 +481,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         }
     }
 
-    // --- Buffering states ---
     else if (context == playbackLikelyToKeepUpContext) {
         if ([[_player currentItem] isPlaybackLikelyToKeepUp]) {
             [self updatePlayingState];
@@ -489,6 +498,8 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         }
     }
 }
+
+
 
 - (void)emitDvrWindow {
    AVPlayerItem *item = self.player.currentItem;
@@ -599,8 +610,31 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (int64_t)position {
-    return [BetterPlayerTimeUtils FLTCMTimeToMillis:([_player currentTime])];
+    AVPlayerItem *item = _player.currentItem;
+    if (!item) return 0;
+
+    NSArray *ranges = item.seekableTimeRanges;
+    if (ranges.count == 0) {
+        // brak DVR → zwracamy absolutny czas
+        Float64 current = CMTimeGetSeconds(_player.currentTime);
+        return (int64_t)(current * 1000);
+    }
+
+    // DVR window
+    CMTimeRange range = [ranges.lastObject CMTimeRangeValue];
+    Float64 dvrStart = CMTimeGetSeconds(range.start);
+    Float64 dvrEnd   = CMTimeGetSeconds(CMTimeRangeGetEnd(range));
+    Float64 current  = CMTimeGetSeconds(_player.currentTime);
+
+    // OFFSET = current - dvrStart
+    Float64 offset = current - dvrStart;
+
+    if (offset < 0) offset = 0;
+    if (offset > (dvrEnd - dvrStart)) offset = (dvrEnd - dvrStart);
+
+    return (int64_t)(offset * 1000);
 }
+
 
 - (int64_t)absolutePosition {
     return [BetterPlayerTimeUtils FLTNSTimeIntervalToMillis:([[[_player currentItem] currentDate] timeIntervalSince1970])];
@@ -663,15 +697,13 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
     NSLog(@"DVR Window: start = %f, end = %f", dvrStart, dvrEnd);
 
-    // oblicz docelowy czas
-    Float64 targetSeconds = dvrStart + (location / 1000.0);
+    // oblicz docelowy czas (offset → absolutny czas)
+    Float64 offsetSeconds = location / 1000.0;
+    Float64 targetSeconds = dvrStart + offsetSeconds;
 
-    // clamp – nie pozwól wyjść poza DVR okno
-    if (targetSeconds < dvrStart) {
-        targetSeconds = dvrStart;
-    } else if (targetSeconds > dvrEnd) {
-        targetSeconds = dvrEnd;
-    }
+    // clamp
+    if (targetSeconds < dvrStart) targetSeconds = dvrStart;
+    if (targetSeconds > dvrEnd)   targetSeconds = dvrEnd;
 
     CMTime seekTime = CMTimeMakeWithSeconds(targetSeconds, NSEC_PER_SEC);
 
@@ -679,22 +711,30 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         toleranceBefore:kCMTimeZero
          toleranceAfter:kCMTimeZero
       completionHandler:^(BOOL finished) {
+
         if (wasPlaying) {
             self->_player.rate = self->_playerRate;
         }
-        // 👇 wyślij event do Fluttera, żeby zsynchronizować progress bar
+
         if (self->_eventSink) {
-            int64_t millis = (int64_t)(targetSeconds * 1000);
+
+            // OFFSET dla Fluttera
+            int64_t offsetMs = (int64_t)((targetSeconds - dvrStart) * 1000);
+
+            int dvrStartMs = (int)(dvrStart * 1000);
+            int dvrEndMs   = (int)(dvrEnd * 1000);
+
             self->_eventSink(@{
                 @"event": @"position",
-                @"position": @(millis),
-                // @"dvrStart": @((int64_t)(dvrStart * 1000)),
-                // @"dvrEnd": @((int64_t)(dvrEnd * 1000)),
+                @"position": @(offsetMs),
+                @"dvrStart": @(dvrStartMs),
+                @"dvrEnd": @(dvrEndMs),
                 @"key": self->_key
             });
         }
     }];
 }
+
 
 #pragma mark - Loop/volume/speed/track parameters
 

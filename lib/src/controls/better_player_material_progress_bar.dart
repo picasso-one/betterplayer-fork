@@ -168,62 +168,83 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
   DateTime? _blockProgressUpdatesUntil;
 
   int clampPosition(int targetMs) {
-    final int dvrStartMs = controller!.value.dvrStart.inMilliseconds ?? 0;
-    final int dvrEndMs = controller!.value.dvrEnd.inMilliseconds ?? controller!.value.duration!.inMilliseconds;
-    return targetMs.clamp(dvrStartMs, dvrEndMs);
+    // clampujemy offset, nie absolutny czas
+    final int maxOffset = controller!.value.dvrEnd.inMilliseconds - controller!.value.dvrStart.inMilliseconds;
+    return targetMs.clamp(0, maxOffset);
   }
 
+  // VideoPlayerValue _getValue() {
+  //   // final isLive = betterPlayerController?.isLiveStream() ?? false;
+  //   // final uri = Uri.tryParse(betterPlayerController!.betterPlayerDataSource!.url);
+  //   // final beginParam = uri?.queryParameters['begin'];
+  //   // final endParam = uri?.queryParameters['end'];
+  //   // if (Platform.isIOS && isLive) {
+  //   //   if (_blockProgressUpdatesUntil != null && DateTime.now().isBefore(_blockProgressUpdatesUntil!)) {
+  //   //     // return controller!.value.copyWith(position: lastSeek);
+  //   //     lastSeek = null;
+  //   //     _blockProgressUpdatesUntil = null;
+  //   //   }
+  //   //   return controller!.value;
+  //   // } else {
+  //   //   if (lastSeek != null) {
+  //   //     return controller!.value.copyWith(position: lastSeek);
+  //   //   } else {
+  //   //     return controller!.value;
+  //   //   }
+  //   // }
+  //   final isLive = betterPlayerController?.isLiveStream() ?? false;
+  //   final hasDvr = controller!.value.dvrEnd > controller!.value.dvrStart;
+
+  //   if (Platform.isIOS && hasDvr) {
+  //     if (lastSeek != null &&
+  //         _blockProgressUpdatesUntil != null &&
+  //         DateTime.now().isBefore(_blockProgressUpdatesUntil!)) {
+  //       return controller!.value.copyWith(position: lastSeek);
+  //     }
+  //     return controller!.value;
+  //   }
+
+  //   if (lastSeek != null) {
+  //     return controller!.value.copyWith(position: lastSeek);
+  //   }
+
+  //   return controller!.value;
+
+  //   //final bool isLive = betterPlayerController?.isLiveStream() ?? false;
+
+  //   // if (_blockProgressUpdatesUntil != null && DateTime.now().isAfter(_blockProgressUpdatesUntil!)) {
+  //   //   lastSeek = null;
+  //   //   _blockProgressUpdatesUntil = null;
+  //   // }
+
+  //   // if (lastSeek != null &&
+  //   //     _blockProgressUpdatesUntil != null &&
+  //   //     DateTime.now().isBefore(_blockProgressUpdatesUntil!)) {
+  //   //   return controller!.value.copyWith(position: lastSeek);
+  //   // }
+
+  //   // return controller!.value;
+  // }
+
   VideoPlayerValue _getValue() {
-    // final isLive = betterPlayerController?.isLiveStream() ?? false;
-    // final uri = Uri.tryParse(betterPlayerController!.betterPlayerDataSource!.url);
-    // final beginParam = uri?.queryParameters['begin'];
-    // final endParam = uri?.queryParameters['end'];
-    // if (Platform.isIOS && isLive) {
-    //   if (_blockProgressUpdatesUntil != null && DateTime.now().isBefore(_blockProgressUpdatesUntil!)) {
-    //     // return controller!.value.copyWith(position: lastSeek);
-    //     lastSeek = null;
-    //     _blockProgressUpdatesUntil = null;
-    //   }
-    //   return controller!.value;
-    // } else {
-    //   if (lastSeek != null) {
-    //     return controller!.value.copyWith(position: lastSeek);
-    //   } else {
-    //     return controller!.value;
-    //   }
-    // }
-    final isLive = betterPlayerController?.isLiveStream() ?? false;
-    final hasDvr = controller!.value.dvrEnd > controller!.value.dvrStart;
+    final int dvrStartMs = controller!.value.dvrStart.inMilliseconds;
+    final int dvrEndMs = controller!.value.dvrEnd.inMilliseconds;
+    final bool hasDvr = dvrEndMs > dvrStartMs;
 
-    if (Platform.isIOS && hasDvr) {
-      if (lastSeek != null &&
-          _blockProgressUpdatesUntil != null &&
-          DateTime.now().isBefore(_blockProgressUpdatesUntil!)) {
-        return controller!.value.copyWith(position: lastSeek);
-      }
-      return controller!.value;
-    }
+    // iOS + DVR + begin => position = ABSOLUTE, musimy przeliczyć na OFFSET
+    final uri = Uri.tryParse(betterPlayerController!.betterPlayerDataSource!.url);
+    final hasBegin = uri?.queryParameters['begin'] != null;
 
-    if (lastSeek != null) {
-      return controller!.value.copyWith(position: lastSeek);
+    if (Platform.isIOS && hasDvr && hasBegin) {
+      final int absolute = controller!.value.position.inMilliseconds;
+      final int offset = (absolute - dvrStartMs).clamp(0, dvrEndMs - dvrStartMs);
+
+      return controller!.value.copyWith(
+        position: Duration(milliseconds: offset),
+      );
     }
 
     return controller!.value;
-
-    //final bool isLive = betterPlayerController?.isLiveStream() ?? false;
-
-    // if (_blockProgressUpdatesUntil != null && DateTime.now().isAfter(_blockProgressUpdatesUntil!)) {
-    //   lastSeek = null;
-    //   _blockProgressUpdatesUntil = null;
-    // }
-
-    // if (lastSeek != null &&
-    //     _blockProgressUpdatesUntil != null &&
-    //     DateTime.now().isBefore(_blockProgressUpdatesUntil!)) {
-    //   return controller!.value.copyWith(position: lastSeek);
-    // }
-
-    // return controller!.value;
   }
 
   void seekToRelativePosition(Offset globalPosition) async {
@@ -235,9 +256,14 @@ class _VideoProgressBarState extends State<BetterPlayerMaterialVideoProgressBar>
 
       final int dvrStart = controller!.value.dvrStart.inMilliseconds ?? 0;
       final int dvrEnd = controller!.value.dvrEnd.inMilliseconds ?? controller!.value.duration!.inMilliseconds;
+      final int window = dvrEnd - dvrStart;
+      final int offsetMs = (relative * window).toInt();
 
-      final int targetMs = (dvrStart + relative * (dvrEnd - dvrStart)).toInt();
-      lastSeek = Duration(milliseconds: clampPosition(targetMs));
+      // offset od początku DVR window
+      //  final int offsetMs = (relative * (dvrEnd - dvrStart)).toInt();
+
+// to wysyłamy do iOS
+      lastSeek = Duration(milliseconds: offsetMs);
 
       _blockProgressUpdatesUntil = DateTime.now().add(const Duration(milliseconds: 2000));
 
@@ -384,27 +410,27 @@ class _ProgressBarPainter extends CustomPainter {
   void _drawActualProgressBar(Canvas canvas, Size size) {
     final int positionMs = _value.position.inMilliseconds;
 
-    final int dvrStartMs = _value.dvrStart.inMilliseconds ?? 0;
-    final int dvrEndMs = _value.dvrEnd.inMilliseconds ?? 0;
+    final int dvrStartMs = _value.dvrStart.inMilliseconds;
+    final int dvrEndMs = _value.dvrEnd.inMilliseconds;
 
     final bool hasDvr = dvrEndMs > dvrStartMs;
 
     if (hasDvr) {
-      // =========================
-      // DVR / CATCH-UP / LIVE DVR
-      // =========================
       final int dvrWindow = dvrEndMs - dvrStartMs;
       if (dvrWindow <= 0) return;
 
-      final double playedPartPercent = ((positionMs - dvrStartMs) / dvrWindow).clamp(0.0, 1.0);
+      // positionMs jest już offsetem
+      final int offsetMs = positionMs;
 
+      final double playedPartPercent = offsetMs / dvrWindow;
       final double playedPart = playedPartPercent * size.width;
 
-      // Buffered ranges (DVR-based)
       for (final DurationRange range in _value.buffered) {
-        final double rangeStart = ((range.start.inMilliseconds - dvrStartMs) / dvrWindow).clamp(0.0, 1.0) * size.width;
+        final int rangeStartOffset = (range.start.inMilliseconds - dvrStartMs).clamp(0, dvrWindow);
+        final int rangeEndOffset = (range.end.inMilliseconds - dvrStartMs).clamp(0, dvrWindow);
 
-        final double rangeEnd = ((range.end.inMilliseconds - dvrStartMs) / dvrWindow).clamp(0.0, 1.0) * size.width;
+        final double rangeStart = (rangeStartOffset / dvrWindow) * size.width;
+        final double rangeEnd = (rangeEndOffset / dvrWindow) * size.width;
 
         drawBufferedProgressBar(canvas, size, rangeStart, rangeEnd);
       }
@@ -412,9 +438,7 @@ class _ProgressBarPainter extends CustomPainter {
       _drawPlayedProgressBar(canvas, size, playedPart);
       _drawCurrentTimeIndicator(canvas, size, playedPart);
     } else {
-      // =========
-      // PURE VOD
-      // =========
+      // VOD
       final int durationMs = _value.duration?.inMilliseconds ?? 0;
       if (durationMs <= 0) return;
 
@@ -534,17 +558,14 @@ class _LiveProgressbarPainter extends _ProgressBarPainter {
 
   //make sure that progress is not minus or more than 100%. This can only apply for live content.
   double _getLiveContentProgress() {
-    final isLive = controller?.isLiveStream() ?? false;
-    print("ProgresBar param => start ${_value.dvrStart} end ${_value.dvrEnd} isLive $isLive");
-    if (Platform.isIOS && isLive) {
-      final double startMs = (_value.dvrStart as Duration?)?.inMilliseconds.toDouble() ?? 0.0;
-      final double endMs =
-          (_value.dvrEnd as Duration?)?.inMilliseconds.toDouble() ?? _value.duration!.inMilliseconds.toDouble();
-      final int positionMs = _value.position.inMilliseconds.toInt();
+    final double startMs = _value.dvrStart.inMilliseconds.toDouble();
+    final double endMs = _value.dvrEnd.inMilliseconds.toDouble();
+    final int positionMs = _value.position.inMilliseconds;
 
-      return ((positionMs - startMs) / (endMs - startMs)).clamp(0.0, 1.0);
-    } else {
-      return (_value.position.inMilliseconds / _value.duration!.inMilliseconds).clamp(0, 1);
-    }
+    final double window = endMs - startMs;
+    if (window <= 0) return 0;
+
+    // iOS wysyła OFFSET → używamy go bez odejmowania startMs
+    return (positionMs / window).clamp(0.0, 1.0);
   }
 }
