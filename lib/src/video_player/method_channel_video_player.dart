@@ -407,6 +407,8 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
             eventType: VideoEventType.bufferingUpdate,
             key: key,
             buffered: values.map<DurationRange>(_toDurationRange).toList(),
+            dvrStart: map.containsKey("dvrStart") ? Duration(milliseconds: map["dvrStart"] as int) : null,
+            dvrEnd: map.containsKey("dvrEnd") ? Duration(milliseconds: map["dvrEnd"] as int) : null,
           );
         case 'bufferingStart':
           return VideoEvent(
@@ -443,13 +445,29 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           );
 
         case 'position':
-          //  print("Wartosci dvr => ${map.containsKey("dvrStart")} ${map.containsKey("dvrEnd")}");
+          final int posMs = map['position'] as int;
+
+          // Jeśli mamy DVR window → przeliczamy absolutną pozycję na offset
+          Duration? dvrStart = map.containsKey("dvrStart") ? Duration(milliseconds: map["dvrStart"] as int) : null;
+
+          Duration? dvrEnd = map.containsKey("dvrEnd") ? Duration(milliseconds: map["dvrEnd"] as int) : null;
+
+          int finalPositionMs = posMs;
+
+          if (dvrStart != null && dvrEnd != null) {
+            final int dvrStartMs = dvrStart.inMilliseconds;
+            final int dvrEndMs = dvrEnd.inMilliseconds;
+
+            // OFFSET = absolutna pozycja - początek DVR window
+            finalPositionMs = (posMs - dvrStartMs).clamp(0, dvrEndMs - dvrStartMs);
+          }
+
           return VideoEvent(
             eventType: VideoEventType.position,
             key: key,
-            position: Duration(milliseconds: map['position'] as int),
-            // dvrStart: map.containsKey("dvrStart") ? Duration(milliseconds: map["dvrStart"] as int) : null,
-            // dvrEnd: map.containsKey("dvrEnd") ? Duration(milliseconds: map["dvrEnd"] as int) : null,
+            position: Duration(milliseconds: finalPositionMs),
+            dvrStart: dvrStart,
+            dvrEnd: dvrEnd,
           );
 
         case 'dvrWindow':
