@@ -33,6 +33,27 @@ AVPictureInPictureController *_pipController;
         _player.automaticallyWaitsToMinimizeStalling = false;
     }
     self._observersAdded = false;
+
+    __weak typeof(self) weakSelf = self;
+    self.timeObserver =
+    [self.player addPeriodicTimeObserverForInterval:CMTimeMakeWithSeconds(2, NSEC_PER_SEC) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
+        if (!weakSelf) {
+            return;
+        }
+
+        int64_t currentDuration = [weakSelf duration];
+        if ((currentDuration > 0) && (currentDuration != weakSelf.lastTimelineDuration)) {
+            weakSelf.lastTimelineDuration = currentDuration;
+            if (weakSelf.eventSink) {
+                weakSelf.eventSink(@{
+                    @"event": @"timelineChanged",
+                    @"key": weakSelf.key ?: [NSNull null],
+                    @"duration": @(currentDuration)
+                });
+            }
+        }
+    }];
+
     return self;
 }
 
@@ -511,17 +532,35 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (int64_t)duration {
-    CMTime time;
-    if (@available(iOS 13, *)) {
-        time =  [[_player currentItem] duration];
-    } else {
-        time =  [[[_player currentItem] asset] duration];
-    }
-    if (!CMTIME_IS_INVALID(_player.currentItem.forwardPlaybackEndTime)) {
-        time = [[_player currentItem] forwardPlaybackEndTime];
+    AVPlayerItem *item = _player.currentItem;
+    if (!item) {
+        return 0;
     }
 
-    return [BetterPlayerTimeUtils FLTCMTimeToMillis:(time)];
+    CMTime time;
+    if (@available(iOS 13, *)) {
+        time = item.duration;
+    } else {
+        time = item.asset.duration;
+    }
+
+    if (!CMTIME_IS_INVALID(item.forwardPlaybackEndTime)) {
+        time = item.forwardPlaybackEndTime;
+    }
+
+    Float64 seconds = CMTimeGetSeconds(time);
+    if (CMTIME_IS_INDEFINITE(time) || isnan(seconds) || seconds <= 0) {
+        NSArray *ranges = item.seekableTimeRanges;
+        if (ranges.count > 0) {
+            CMTimeRange range = [[ranges lastObject] CMTimeRangeValue];
+            Float64 dvrSeconds = CMTimeGetSeconds(range.duration);
+            return (int64_t)(dvrSeconds * 1000.0);
+        }
+
+        return 0;
+    }
+
+    return [BetterPlayerTimeUtils FLTCMTimeToMillis:time];
 }
 
 - (void)seekTo:(int)location {
@@ -759,6 +798,11 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)dispose {
+    if (self.timeObserver) {
+        [self.player removeTimeObserver:self.timeObserver];
+        self.timeObserver = nil;
+    }
+    
     [self pause];
     [self disposeSansEventChannel];
     [_eventChannel setStreamHandler:nil];

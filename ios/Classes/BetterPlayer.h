@@ -34,6 +34,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic) bool isStalledCheckStarted;
 @property(nonatomic) float playerRate;
 @property(nonatomic) int overriddenDuration;
+@property(nonatomic, assign) int64_t lastTimelineDuration;
+@property(nonatomic, strong) id timeObserver;
 @property(nonatomic) AVPlayerTimeControlStatus lastAvPlayerTimeControlStatus;
 - (void)play;
 - (void)pause;
