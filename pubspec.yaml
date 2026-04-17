@@ -21,12 +21,6 @@ dependencies:
   path_provider: ^2.0.15
   collection: ^1.16.0
   xml: ^6.1.0
-  flutter_cast_video:
-    git:
-      url: https://github.com/picasso-one/flutter_cast_video.git
-      ref: main
-    #leave below for development and testing purposes
-    #path: ../flutter_cast_video
   flutter_to_airplay:
     git:
       url: https://github.com/picasso-one/flutter_to_airplay_fork.git

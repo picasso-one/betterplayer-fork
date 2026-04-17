@@ -25,4 +25,7 @@ class HlsTrackMetadataEntry {
     }
     return false;
   }
+
+  @override
+  int get hashCode => Object.hash(groupId, name, variantInfos);
 }

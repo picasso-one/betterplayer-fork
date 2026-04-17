@@ -31,13 +31,11 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
   final StreamController<bool> playerVisibilityStreamController = StreamController();
 
   bool _initialized = false;
-  bool _showChannelList = false;
 
   StreamSubscription? _controllerEventSubscription;
 
   @override
   void initState() {
-    _showChannelList = false;
     playerVisibilityStreamController.add(true);
     _controllerEventSubscription = widget.controller!.controllerEventStream.listen(_onControllerChanged);
 
@@ -47,7 +45,6 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
   @override
   void didUpdateWidget(BetterPlayerWithControls oldWidget) {
     if (oldWidget.controller != widget.controller) {
-      _showChannelList = false;
       _controllerEventSubscription?.cancel();
       _controllerEventSubscription = widget.controller!.controllerEventStream.listen(_onControllerChanged);
     }
@@ -56,7 +53,6 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
 
   @override
   void dispose() {
-    _showChannelList = false;
     playerVisibilityStreamController.close();
     _controllerEventSubscription?.cancel();
     super.dispose();
@@ -64,7 +60,6 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
 
   void _onControllerChanged(BetterPlayerControllerEvent event) {
     setState(() {
-      _showChannelList = false;
       if (!_initialized) {
         _initialized = true;
       }
@@ -154,15 +149,9 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
             playerVisibilityStream: playerVisibilityStreamController.stream,
           ),
           if (!placeholderOnTop) _buildPlaceholder(betterPlayerController),
-          _buildControls(context, betterPlayerController, () {
-            setState(() {
-              _showChannelList = true;
-            });
-          }),
+          _buildControls(context, betterPlayerController),
           _buildPlayNextWidget(context, betterPlayerController),
           _buildSkipIntroButton(betterPlayerController),
-          if (betterPlayerController.betterPlayerTvChannelListConfiguration?.channelList != null && _showChannelList)
-            _buildChannelList(context, betterPlayerController)
         ],
       ),
     );
@@ -185,16 +174,6 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
             : SizedBox.shrink(),
       );
 
-  Widget _buildChannelList(BuildContext context, BetterPlayerController betterPlayerController) => Positioned(
-      right: 0,
-      top: 0,
-      bottom: 0,
-      child: Container(
-          width: 360,
-          height: double.infinity,
-          color: Colors.black87,
-          child: betterPlayerController.betterPlayerTvChannelListConfiguration?.channelList ?? SizedBox.shrink()));
-
   Widget _buildSkipIntroButton(BetterPlayerController betterPlayerController) {
     return Positioned(
       bottom: 100,
@@ -216,23 +195,17 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
   }
 
   double _progressPlayNextVideo(BetterPlayerController betterPlayerController) {
-    final videoController = betterPlayerController.videoPlayerController;
-    if (!(videoController?.value.initialized ?? false)) {
-      return 0.0;
-    }
-
-    final currentPosition = videoController!.value.position.inMilliseconds;
-    final timeEndVideo = videoController.value.duration!.inMilliseconds;
+    final currentPosition = betterPlayerController.videoPlayerController!.value.position.inMilliseconds;
+    final timeEndVideo = betterPlayerController.videoPlayerController!.value.duration!.inMilliseconds;
     final showBeforeEndMillis =
         timeEndVideo - betterPlayerController.betterPlayerPlayNextVideoConfiguration!.showBeforeEndMillis;
     final hidePlayNextButton = timeEndVideo -
         betterPlayerController.betterPlayerPlayNextVideoConfiguration!.showBeforeEndMillis +
         betterPlayerController.betterPlayerPlayNextVideoConfiguration!.autoSwitchToNextMillis;
+    final videoController = betterPlayerController.videoPlayerController;
 
-    if (currentPosition >= showBeforeEndMillis) {
-      if ((currentPosition / hidePlayNextButton) > 0.990) {
-        betterPlayerController.betterPlayerPlayNextVideoConfiguration?.onPlayNext?.call();
-      }
+    if (!(videoController?.value.initialized ?? false)) {
+      return 0.0;
     }
 
     return (currentPosition >= showBeforeEndMillis) ? currentPosition / hidePlayNextButton : 0.0;
@@ -256,7 +229,6 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
   Widget _buildControls(
     BuildContext context,
     BetterPlayerController betterPlayerController,
-    Function()? onChannelListPressed,
   ) {
     if (controlsConfiguration.showControls) {
       BetterPlayerTheme? playerTheme = controlsConfiguration.playerTheme;
@@ -271,7 +243,7 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
       if (controlsConfiguration.customControlsBuilder != null && playerTheme == BetterPlayerTheme.custom) {
         return controlsConfiguration.customControlsBuilder!(betterPlayerController, onControlsVisibilityChanged);
       } else /*if (playerTheme == BetterPlayerTheme.material)*/ {
-        return _buildMaterialControl(onChannelListPressed);
+        return _buildMaterialControl();
       } /*else if (playerTheme == BetterPlayerTheme.cupertino) {
         return _buildCupertinoControl();
       }*/
@@ -280,11 +252,10 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
     return const SizedBox();
   }
 
-  Widget _buildMaterialControl(Function()? onChannelListPressed) {
+  Widget _buildMaterialControl() {
     return BetterPlayerMaterialControls(
       onControlsVisibilityChanged: onControlsVisibilityChanged,
       controlsConfiguration: controlsConfiguration,
-      onChannelListPressed: onChannelListPressed,
     );
   }
 
@@ -296,11 +267,6 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
   }
 
   void onControlsVisibilityChanged(bool state) {
-    if (state == true) {
-      setState(() {
-        _showChannelList = false;
-      });
-    }
     playerVisibilityStreamController.add(state);
   }
 }

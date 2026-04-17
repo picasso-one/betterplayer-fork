@@ -5,8 +5,6 @@ import 'package:better_player/better_player.dart';
 import 'package:better_player/src/configuration/better_player_bitrate_configuration.dart';
 import 'package:better_player/src/configuration/better_player_controller_event.dart';
 import 'package:better_player/src/configuration/better_player_restart_tv_configuration.dart';
-import 'package:better_player/src/configuration/better_player_swipe_configuration.dart';
-import 'package:better_player/src/configuration/better_player_tv_channel_list_configuration.dart';
 import 'package:better_player/src/core/better_player_utils.dart';
 import 'package:better_player/src/subtitles/better_player_subtitle.dart';
 import 'package:better_player/src/subtitles/better_player_subtitles_factory.dart';
@@ -29,7 +27,7 @@ class BetterPlayerController {
   static const String _authorizationHeader = "Authorization";
 
   ///General configuration used in controller instance.
-  BetterPlayerConfiguration betterPlayerConfiguration;
+  final BetterPlayerConfiguration betterPlayerConfiguration;
 
   ///Playlist configuration used in controller instance.
   final BetterPlayerPlaylistConfiguration? betterPlayerPlaylistConfiguration;
@@ -50,18 +48,12 @@ class BetterPlayerController {
   ///Controls configuration
   late BetterPlayerControlsConfiguration _betterPlayerControlsConfiguration;
 
-  BetterPlayerPlayNextVideoConfiguration? betterPlayerPlayNextVideoConfiguration;
-  BetterPlayerSkipIntroConfiguration? betterPlayerSkipIntroConfiguration;
+  final BetterPlayerPlayNextVideoConfiguration? betterPlayerPlayNextVideoConfiguration;
+  final BetterPlayerSkipIntroConfiguration? betterPlayerSkipIntroConfiguration;
 
   final BetterPLayerAirplayConfiguration? betterPLayerAirplayConfiguration;
 
-  BetterPlayerRestartTvConfiguration? betterPlayerRestartTvConfiguration;
-
-  final BetterPlayerSwipeConfiguration? betterPlayerSwipeConfiguration;
-
-  BetterPlayerTvChannelListConfiguration? betterPlayerTvChannelListConfiguration;
-
-  BetterPlayerChromeCastConfiguration? betterPlayerChromeCastConfiguration;
+  final BetterPlayerRestartTvConfiguration? betterPlayerRestartTvConfiguration;
 
   ///Controls configuration
   BetterPlayerControlsConfiguration get betterPlayerControlsConfiguration => _betterPlayerControlsConfiguration;
@@ -71,6 +63,9 @@ class BetterPlayerController {
 
   /// Defines a event listener where video player events will be send.
   Function(BetterPlayerEvent)? get eventListener => betterPlayerConfiguration.eventListener;
+
+  /// Action handler for onVerticalDragEnd gesture 
+  Future<BetterPlayerDataSource> Function(BetterPlayerController controller, bool toTop)? fullscreenOnGesture;
 
   ///Flag used to store full screen mode state.
   bool _isFullScreen = false;
@@ -96,6 +91,9 @@ class BetterPlayerController {
 
   ///Currently used data source in player.
   BetterPlayerDataSource? _betterPlayerDataSource;
+
+  //Title of a video
+  final ValueNotifier<String> videoTitleText;
 
   ///Currently used data source in player.
   BetterPlayerDataSource? get betterPlayerDataSource => _betterPlayerDataSource;
@@ -243,13 +241,12 @@ class BetterPlayerController {
     this.betterPlayerPlayNextVideoConfiguration,
     this.betterPlayerSkipIntroConfiguration,
     this.betterPlayerRestartTvConfiguration,
-    this.betterPlayerSwipeConfiguration,
     this.betterPLayerAirplayConfiguration,
-    this.betterPlayerTvChannelListConfiguration,
-    this.betterPlayerChromeCastConfiguration,
+    this.fullscreenOnGesture,
     BetterPlayerDataSource? betterPlayerDataSource,
-  }) {
+  }) : videoTitleText = ValueNotifier("") {
     this._betterPlayerControlsConfiguration = betterPlayerConfiguration.controlsConfiguration;
+    this.fullscreenOnGesture != null ? addOnFullscreenGesture(this.fullscreenOnGesture!) : null;
     _eventListeners.add(eventListener);
     if (betterPlayerDataSource != null) {
       setupDataSource(betterPlayerDataSource);
@@ -269,7 +266,6 @@ class BetterPlayerController {
     postEvent(BetterPlayerEvent(BetterPlayerEventType.setupDataSource, parameters: <String, dynamic>{
       _dataSourceParameter: betterPlayerDataSource,
     }));
-
     _postControllerEvent(BetterPlayerControllerEvent.setupDataSource);
     _hasCurrentDataSourceStarted = false;
     _hasCurrentDataSourceInitialized = false;
@@ -303,6 +299,8 @@ class BetterPlayerController {
     ///Process data source
     await _setupDataSource(betterPlayerDataSource);
   }
+
+  void setVideoTitle(String title) => videoTitleText.value = title;
 
   ///Configure subtitles based on subtitles source.
   void _setupSubtitles() {
@@ -618,8 +616,10 @@ class BetterPlayerController {
   void toggleFullScreen() {
     _isFullScreen = !_isFullScreen;
     if (_isFullScreen) {
+      _postEvent(BetterPlayerEvent(BetterPlayerEventType.openFullscreenWithButton));
       _postControllerEvent(BetterPlayerControllerEvent.openFullscreen);
     } else {
+      _postEvent(BetterPlayerEvent(BetterPlayerEventType.hideFullscreenWithButton));
       _postControllerEvent(BetterPlayerControllerEvent.hideFullscreen);
     }
   }
@@ -715,18 +715,6 @@ class BetterPlayerController {
     } else {
       cancelNextVideoTimer();
     }
-  }
-
-  Future<void> seekBackward() async {
-    await videoPlayerController!.seekBackward();
-  }
-
-  Future<void> seekForward() async {
-    await videoPlayerController!.seekForward();
-  }
-
-  Future<void> getDvrWindow() async {
-    await videoPlayerController!.getDvrWindow();
   }
 
   ///Set volume of player. Allows values from 0.0 to 1.0.
@@ -850,11 +838,8 @@ class BetterPlayerController {
       _isPip = false;
       _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStop));
       _wasInPipMode = false;
-
       if (!_wasInFullScreenBeforePiP) {
         exitFullScreen();
-      } else {
-        enterFullScreen();
       }
       if (_wasControlsEnabledBeforePiP) {
         setControlsEnabled(true);
@@ -872,7 +857,6 @@ class BetterPlayerController {
     final int now = DateTime.now().millisecondsSinceEpoch;
     if (now - _lastPositionSelection > 500) {
       _lastPositionSelection = now;
-      // await getDvrWindow();
       _postEvent(
         BetterPlayerEvent(
           BetterPlayerEventType.progress,
@@ -886,7 +870,6 @@ class BetterPlayerController {
   }
 
   void _displayPlayNextButton(VideoPlayerValue currentVideoPlayerValue) {
-    bool actionDone = false;
     if (betterPlayerPlayNextVideoConfiguration != null && videoPlayerController?.value.duration != null) {
       if ((currentVideoPlayerValue.position.inMilliseconds >=
               (videoPlayerController!.value.duration!.inMilliseconds -
@@ -895,18 +878,13 @@ class BetterPlayerController {
               (videoPlayerController!.value.duration!.inMilliseconds -
                   betterPlayerPlayNextVideoConfiguration!.showBeforeEndMillis +
                   betterPlayerPlayNextVideoConfiguration!.autoSwitchToNextMillis)) {
-        actionDone = true;
         showNextVideoButton();
       } else if (currentVideoPlayerValue.position.inMilliseconds >
           (videoPlayerController!.value.duration!.inMilliseconds -
               betterPlayerPlayNextVideoConfiguration!.showBeforeEndMillis +
               betterPlayerPlayNextVideoConfiguration!.autoSwitchToNextMillis)) {
-        actionDone = true;
         hideNextVideoButton();
       }
-    }
-    if (!actionDone) {
-      _showNextVideoButton = false;
     }
   }
 
@@ -927,6 +905,10 @@ class BetterPlayerController {
   ///Add event listener which listens to player events.
   void addEventsListener(Function(BetterPlayerEvent) eventListener) {
     _eventListeners.add(eventListener);
+  }
+
+  void addOnFullscreenGesture(Future<BetterPlayerDataSource> Function(BetterPlayerController configuration, bool isBottom) function) {
+    fullscreenOnGesture = (configuration, toTop) async => function(this, toTop);
   }
 
   ///Remove event listener. This method should be called once you're disposing
@@ -1184,12 +1166,12 @@ class BetterPlayerController {
 
     if (isPipSupported && canEnablePictureInPicture) {
       _isPip = true;
-      _wasInFullScreenBeforePiP = _isFullScreen;
       exitFullScreen();
-
+      _wasInFullScreenBeforePiP = _isFullScreen;
       _wasControlsEnabledBeforePiP = _controlsEnabled;
       setControlsEnabled(false);
       if (Platform.isAndroid) {
+        _wasInFullScreenBeforePiP = _isFullScreen;
         await videoPlayerController?.enablePictureInPicture(left: 0, top: 0, width: 0, height: 0);
 
         enterFullScreen();

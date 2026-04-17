@@ -69,10 +69,10 @@ packages:
     dependency: transitive
     description:
       name: ffi
-      sha256: "7bf0adc28a23d395f19f3f1eb21dd7cfd1dd9f8e1c50051c069122e6853bc878"
+      sha256: "16ed7b077ef01ad6170a3d0c57caa4a112a38d7a2ed5602e0aca9ca6f3d98da6"
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.0"
+    version: "2.1.3"
   file:
     dependency: transitive
     description:
@@ -86,15 +86,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_cast_video:
-    dependency: "direct main"
-    description:
-      path: "."
-      ref: main
-      resolved-ref: "0cfc0f648e83a6347ef86e0fa1c3d611ba5b975b"
-      url: "https://github.com/picasso-one/flutter_cast_video.git"
-    source: git
-    version: "1.2.0"
   flutter_localizations:
     dependency: "direct dev"
     description: flutter
@@ -166,10 +157,10 @@ packages:
     dependency: "direct dev"
     description:
       name: lint
-      sha256: "77b3777e8e9adca8e942da1e835882ae3248dfa00488a2ebbdbc1f1a4aa3f4a7"
+      sha256: "2a1da23938013e5ec7cba18b97376fa685968ce96ae752c27b16742489006af2"
       url: "https://pub.dev"
     source: hosted
-    version: "2.2.0"
+    version: "2.6.2"
   matcher:
     dependency: transitive
     description:
@@ -270,10 +261,10 @@ packages:
     dependency: transitive
     description:
       name: plugin_platform_interface
-      sha256: f4f88d4a900933e7267e2b353594774fc0d07fb072b47eedcd5b54e1ea3269f8
+      sha256: "4820fbfdb9478b1ebae27888254d445073732dae3d6ea81f0b7e06d5dedc3f02"
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.7"
+    version: "2.1.8"
   process:
     dependency: transitive
     description:
@@ -311,14 +302,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
-  stream_transform:
-    dependency: transitive
-    description:
-      name: stream_transform
-      sha256: ad47125e588cfd37a9a7f86c7d6356dde8dfe89d071d293f80ca9e9273a33871
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.1"
   string_scanner:
     dependency: transitive
     description:
@@ -371,10 +354,10 @@ packages:
     dependency: transitive
     description:
       name: win32
-      sha256: b0f37db61ba2f2e9b7a78a1caece0052564d1bc70668156cf3a29d676fe4e574
+      sha256: daf97c9d80197ed7b619040e86c8ab9a9dad285e7671ee7390f9180cc828a51e
       url: "https://pub.dev"
     source: hosted
-    version: "5.1.1"
+    version: "5.10.1"
   xdg_directories:
     dependency: transitive
     description:
@@ -392,5 +375,5 @@ packages:
     source: hosted
     version: "6.1.0"
 sdks:
-  dart: ">=3.3.0 <4.0.0"
+  dart: ">=3.5.0 <4.0.0"
   flutter: ">=3.18.0-18.0.pre.54"

@@ -47,4 +47,12 @@ class SchemeData {
 
     return false;
   }
+
+  @override
+  int get hashCode => Object.hash(
+      /*uuid, */
+      licenseServerUrl,
+      mimeType,
+      data,
+      requiresSecureDecryption);
 }

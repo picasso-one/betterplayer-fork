@@ -32,7 +32,8 @@ class BetterPlayerCupertinoVideoProgressBar extends StatefulWidget {
   }
 }
 
-class _VideoProgressBarState extends State<BetterPlayerCupertinoVideoProgressBar> {
+class _VideoProgressBarState
+    extends State<BetterPlayerCupertinoVideoProgressBar> {
   _VideoProgressBarState() {
     listener = () {
       if (mounted) setState(() {});
@@ -44,7 +45,8 @@ class _VideoProgressBarState extends State<BetterPlayerCupertinoVideoProgressBar
 
   VideoPlayerController? get controller => widget.controller;
 
-  BetterPlayerController? get betterPlayerController => widget.betterPlayerController;
+  BetterPlayerController? get betterPlayerController =>
+      widget.betterPlayerController;
 
   bool shouldPlayAfterDragEnd = false;
   Duration? lastSeek;
@@ -65,7 +67,8 @@ class _VideoProgressBarState extends State<BetterPlayerCupertinoVideoProgressBar
 
   @override
   Widget build(BuildContext context) {
-    final bool enableProgressBarDrag = betterPlayerController!.betterPlayerControlsConfiguration.enableProgressBarDrag;
+    final bool enableProgressBarDrag = betterPlayerController!
+        .betterPlayerControlsConfiguration.enableProgressBarDrag;
     return GestureDetector(
       onHorizontalDragStart: (DragStartDetails details) {
         if (!controller!.value.initialized || !enableProgressBarDrag) {
@@ -209,8 +212,10 @@ class _ProgressBarPainter extends CustomPainter {
     if (!value.initialized) {
       return;
     }
-    final double playedPartPercent = value.position.inMilliseconds / value.duration!.inMilliseconds;
-    final double playedPart = playedPartPercent > 1 ? size.width : playedPartPercent * size.width;
+    final double playedPartPercent =
+        value.position.inMilliseconds / value.duration!.inMilliseconds;
+    final double playedPart =
+        playedPartPercent > 1 ? size.width : playedPartPercent * size.width;
     for (final DurationRange range in value.buffered) {
       final double start = range.startFraction(value.duration!) * size.width;
       final double end = range.endFraction(value.duration!) * size.width;
@@ -237,7 +242,9 @@ class _ProgressBarPainter extends CustomPainter {
     );
 
     final shadowPath = Path()
-      ..addOval(Rect.fromCircle(center: Offset(playedPart, baseOffset + barHeight / 2), radius: handleHeight));
+      ..addOval(Rect.fromCircle(
+          center: Offset(playedPart, baseOffset + barHeight / 2),
+          radius: handleHeight));
 
     canvas.drawShadow(shadowPath, Colors.black, 0.2, false);
     canvas.drawCircle(

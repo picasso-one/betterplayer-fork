@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:flutter/cupertino.dart';
 
 import 'scheme_data.dart';
 
@@ -15,4 +16,7 @@ class DrmInitData {
     }
     return false;
   }
+
+  @override
+  int get hashCode => Object.hash(schemeType, schemeData);
 }

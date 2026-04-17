@@ -14,9 +14,6 @@ class ProgressbarUtils {
     if (!betterPlayerController.isLiveStream()) return true;
 
     final Duration contentDuration = videoPlayerController?.value.duration ?? Duration.zero;
-    print(contentDuration >= controlsConfiguration.minimumDurationToEnableProgressbar);
-    print("showProgressBar => $contentDuration > ${controlsConfiguration.minimumDurationToEnableProgressbar}");
-
     return contentDuration >= controlsConfiguration.minimumDurationToEnableProgressbar;
   }
 }

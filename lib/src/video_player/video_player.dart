@@ -45,8 +45,6 @@ class VideoPlayerValue {
     this.speed = 1.0,
     this.errorDescription,
     this.isPip = false,
-    this.dvrStart = const Duration(),
-    this.dvrEnd = const Duration(),
   });
 
   /// Returns an instance with a `null` [Duration].
@@ -54,7 +52,8 @@ class VideoPlayerValue {
 
   /// Returns an instance with a `null` [Duration] and the given
   /// [errorDescription].
-  VideoPlayerValue.erroneous(String errorDescription) : this(duration: null, errorDescription: errorDescription);
+  VideoPlayerValue.erroneous(String errorDescription)
+      : this(duration: null, errorDescription: errorDescription);
 
   /// The total duration of the video.
   ///
@@ -63,10 +62,6 @@ class VideoPlayerValue {
 
   /// The current playback position.
   final Duration position;
-
-  final Duration dvrStart;
-
-  final Duration dvrEnd;
 
   /// The current absolute playback position.
   ///
@@ -135,8 +130,6 @@ class VideoPlayerValue {
     String? errorDescription,
     double? speed,
     bool? isPip,
-    Duration? dvrStart,
-    Duration? dvrEnd,
   }) {
     return VideoPlayerValue(
       duration: duration ?? this.duration,
@@ -150,8 +143,6 @@ class VideoPlayerValue {
       speed: speed ?? this.speed,
       errorDescription: errorDescription ?? this.errorDescription,
       isPip: isPip ?? this.isPip,
-      dvrStart: dvrStart ?? this.dvrStart,
-      dvrEnd: dvrEnd ?? this.dvrEnd,
     );
   }
 
@@ -194,7 +185,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     }
   }
 
-  final StreamController<VideoEvent> videoEventStreamController = StreamController.broadcast();
+  final StreamController<VideoEvent> videoEventStreamController =
+      StreamController.broadcast();
   final Completer<void> _creatingCompleter = Completer<void>();
   int? _textureId;
 
@@ -250,32 +242,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
             value = value.copyWith(isBuffering: false);
           }
           break;
-        case VideoEventType.position:
-          final Duration eventPosition = event.position ?? Duration.zero;
-          final Duration dvrStart = event.dvrStart ?? Duration.zero;
-          final Duration dvrEnd = event.dvrEnd ?? (value.duration ?? Duration.zero);
-
-          if (Platform.isIOS && dvrEnd > dvrStart) {
-            // RELATYWNA pozycja w DVR window
-            final Duration relativePosition = eventPosition - dvrStart;
-            value = value.copyWith(
-                dvrStart: dvrStart,
-                dvrEnd: dvrEnd,
-                position: clampDuration(relativePosition, Duration.zero, dvrEnd - dvrStart));
-          } else {
-            value = value.copyWith(position: eventPosition);
-          }
-          break;
-
-        case VideoEventType.dvrWindow:
-          final Duration eventPosition = event.position ?? Duration.zero;
-          final Duration dvrStart = event.dvrStart ?? Duration.zero;
-          final Duration dvrEnd = event.dvrEnd ?? (value.duration ?? Duration.zero);
-          value = value.copyWith(
-            dvrStart: event.dvrStart,
-            dvrEnd: event.dvrEnd,
-          );
-          break;
 
         case VideoEventType.play:
           play();
@@ -291,6 +257,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           break;
         case VideoEventType.pipStop:
           value = value.copyWith(isPip: false);
+          break;
+        case VideoEventType.timelineChanged:
+          value = value.copyWith(duration: event.duration);
           break;
         case VideoEventType.unknown:
           break;
@@ -310,7 +279,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       }
     }
 
-    _eventSubscription = _videoPlayerPlatform.videoEventsFor(_textureId).listen(eventListener, onError: errorListener);
+    _eventSubscription = _videoPlayerPlatform
+        .videoEventsFor(_textureId)
+        .listen(eventListener, onError: errorListener);
   }
 
   /// Set data source for playing a video from an asset.
@@ -343,12 +314,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         activityName: activityName,
       ),
     );
-  }
-
-  Duration clampDuration(Duration value, Duration min, Duration max) {
-    if (value < min) return min;
-    if (value > max) return max;
-    return value;
   }
 
   /// Set data source for playing a video from obtained from
@@ -450,7 +415,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
 
     _initializingCompleter = Completer<void>();
 
-    await VideoPlayerPlatform.instance.setDataSource(_textureId, dataSourceDescription);
+    await VideoPlayerPlatform.instance
+        .setDataSource(_textureId, dataSourceDescription);
     return _initializingCompleter.future;
   }
 
@@ -520,7 +486,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           }
           _updatePosition(newPosition, absolutePosition: newAbsolutePosition);
           if (_seekPosition != null && newPosition != null) {
-            final difference = newPosition.inMilliseconds - _seekPosition!.inMilliseconds;
+            final difference =
+                newPosition.inMilliseconds - _seekPosition!.inMilliseconds;
             if (difference > 0) {
               _seekPosition = null;
             }
@@ -568,118 +535,35 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   ///
   /// If [moment] is outside of the video's full range it will be automatically
   /// and silently clamped.
-  // Future<void> seekTo(Duration? position) async {
-  //   _timer?.cancel();
-  //   bool isPlaying = value.isPlaying;
-  //   final int positionInMs = value.position.inMilliseconds;
-  //   final int durationInMs = value.duration?.inMilliseconds ?? 0;
-
-  //   if (positionInMs >= durationInMs && position?.inMilliseconds == 0) {
-  //     isPlaying = true;
-  //   }
-  //   if (_isDisposed) {
-  //     return;
-  //   }
-
-  //   Duration? positionToSeek = position;
-  //   if (position! > value.duration!) {
-  //     positionToSeek = value.duration;
-  //   } else if (position < const Duration()) {
-  //     positionToSeek = const Duration();
-  //   }
-  //   _seekPosition = positionToSeek;
-
-  //   await _videoPlayerPlatform.seekTo(_textureId, positionToSeek);
-  //   _updatePosition(position);
-
-  //   if (isPlaying) {
-  //     play();
-  //   } else {
-  //     pause();
-  //   }
-  // }
-
   Future<void> seekTo(Duration? position) async {
-    if (_isDisposed || position == null) return;
-
-    bool isPlaying = value.isPlaying;
-
-    if (Platform.isIOS && value.dvrEnd > value.dvrStart) {
-      // iOS LIVE / DVR
-      final Duration dvrWindow = value.dvrEnd - value.dvrStart;
-
-      // clamp RELATYWNY
-      Duration positionToSeek = clampDuration(position, Duration.zero, dvrWindow);
-
-      // dodaj offset DVR
-      final Duration absolutePosition = value.dvrStart + positionToSeek;
-      _seekPosition = positionToSeek;
-
-      await _videoPlayerPlatform.seekTo(_textureId, absolutePosition);
-      _updatePosition(positionToSeek);
-    } else {
-      // VOD / Android
-      final Duration duration = value.duration ?? Duration.zero;
-      final Duration positionToSeek = clampDuration(position, Duration.zero, duration);
-      _seekPosition = positionToSeek;
-
-      await _videoPlayerPlatform.seekTo(_textureId, positionToSeek);
-      _updatePosition(positionToSeek);
-    }
-
-    if (isPlaying) {
-      play();
-    } else {
-      pause();
-    }
-  }
-
-  Future<void> seekBackward() async {
     _timer?.cancel();
     bool isPlaying = value.isPlaying;
     final int positionInMs = value.position.inMilliseconds;
     final int durationInMs = value.duration?.inMilliseconds ?? 0;
 
-    if (positionInMs >= durationInMs) {
+    if (positionInMs >= durationInMs && position?.inMilliseconds == 0) {
       isPlaying = true;
     }
     if (_isDisposed) {
       return;
     }
-    print("SkipBaclward");
-    await _videoPlayerPlatform.seekBackward(_textureId);
+
+    Duration? positionToSeek = position;
+    if (position! > value.duration!) {
+      positionToSeek = value.duration;
+    } else if (position < const Duration()) {
+      positionToSeek = const Duration();
+    }
+    _seekPosition = positionToSeek;
+
+    await _videoPlayerPlatform.seekTo(_textureId, positionToSeek);
+    _updatePosition(position);
 
     if (isPlaying) {
       play();
     } else {
       pause();
     }
-  }
-
-  Future<void> seekForward() async {
-    _timer?.cancel();
-    bool isPlaying = value.isPlaying;
-    final int positionInMs = value.position.inMilliseconds;
-    final int durationInMs = value.duration?.inMilliseconds ?? 0;
-
-    if (positionInMs >= durationInMs) {
-      isPlaying = true;
-    }
-    if (_isDisposed) {
-      return;
-    }
-    print("SkipForward");
-    await _videoPlayerPlatform.seekForward(_textureId);
-
-    if (isPlaying) {
-      play();
-    } else {
-      pause();
-    }
-  }
-
-  Future<void> getDvrWindow() async {
-    await _videoPlayerPlatform.getDvrWindow(_textureId);
   }
 
   /// Sets the audio volume of [this].
@@ -712,7 +596,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// [bitrate] specifies bitrate of the selected track
   Future<void> setTrackParameters(int? width, int? height, int? bitrate) async {
     try {
-      await _videoPlayerPlatform.setTrackParameters(_textureId, width, height, bitrate);
+      await _videoPlayerPlatform.setTrackParameters(
+          _textureId, width, height, bitrate);
     } catch (e) {
       // no op, just to catch strange crashes
       // when async communication with platform fails
@@ -720,8 +605,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     }
   }
 
-  Future<void> enablePictureInPicture({double? top, double? left, double? width, double? height}) async {
-    await _videoPlayerPlatform.enablePictureInPicture(textureId, top, left, width, height);
+  Future<void> enablePictureInPicture(
+      {double? top, double? left, double? width, double? height}) async {
+    await _videoPlayerPlatform.enablePictureInPicture(
+        textureId, top, left, width, height);
   }
 
   Future<void> disablePictureInPicture() async {
@@ -729,11 +616,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   }
 
   void _updatePosition(Duration? position, {DateTime? absolutePosition}) {
-    if (Platform.isIOS && value.dvrEnd > value.dvrStart) {
-      // RELATYWNA pozycja w DVR
-      value = value.copyWith(position: _seekPosition ?? position);
-    } else {
-      value = value.copyWith(position: _seekPosition ?? position, absolutePosition: absolutePosition);
+    value = value.copyWith(position: _seekPosition ?? position);
+    if (_seekPosition == null) {
+      value = value.copyWith(absolutePosition: absolutePosition);
     }
   }
 
@@ -822,7 +707,9 @@ class _VideoPlayerState extends State<VideoPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    return _textureId == null ? Container() : _videoPlayerPlatform.buildView(_textureId);
+    return _textureId == null
+        ? Container()
+        : _videoPlayerPlatform.buildView(_textureId);
   }
 }
 
@@ -887,31 +774,13 @@ class _VideoScrubberState extends State<_VideoScrubber> {
   @override
   Widget build(BuildContext context) {
     void seekToRelativePosition(Offset globalPosition) {
-      if (Platform.isIOS) {
-        final RenderObject? renderObject = context.findRenderObject();
-        if (renderObject != null) {
-          final RenderBox box = renderObject as RenderBox;
-          final Offset tapPos = box.globalToLocal(globalPosition);
-          final double relative = tapPos.dx / box.size.width;
-
-          // 👇 używaj DVR window zamiast całego duration
-          final Duration dvrWindow = controller.value.dvrEnd - controller.value.dvrStart;
-          final Duration position = dvrWindow * relative;
-
-          // dodaj offset od początku DVR
-          final Duration absoluteSeek = position;
-
-          controller.seekTo(absoluteSeek);
-        }
-      } else {
-        final RenderObject? renderObject = context.findRenderObject();
-        if (renderObject != null) {
-          final RenderBox box = renderObject as RenderBox;
-          final Offset tapPos = box.globalToLocal(globalPosition);
-          final double relative = tapPos.dx / box.size.width;
-          final Duration position = controller.value.duration! * relative;
-          controller.seekTo(position);
-        }
+      final RenderObject? renderObject = context.findRenderObject();
+      if (renderObject != null) {
+        final RenderBox box = renderObject as RenderBox;
+        final Offset tapPos = box.globalToLocal(globalPosition);
+        final double relative = tapPos.dx / box.size.width;
+        final Duration position = controller.value.duration! * relative;
+        controller.seekTo(position);
       }
     }
 
@@ -1028,50 +897,27 @@ class _VideoProgressIndicatorState extends State<VideoProgressIndicator> {
   Widget build(BuildContext context) {
     Widget progressIndicator;
     if (controller.value.initialized) {
-      int dvrStart = 0;
-      int dvrEnd = 0;
-      int dvrWindow = 0;
-      int duration = 0;
-      int position = 0;
-      if (Platform.isIOS) {
-        dvrStart = controller.value.dvrStart.inMilliseconds;
-        dvrEnd = controller.value.dvrEnd.inMilliseconds;
-        dvrWindow = (dvrEnd - dvrStart).clamp(1, 1 << 31);
+      final int duration = controller.value.duration!.inMilliseconds;
+      final int position = controller.value.position.inMilliseconds;
 
-        position = (controller.value.position.inMilliseconds - dvrStart).clamp(0, dvrWindow);
-      } else {
-        duration = controller.value.duration!.inMilliseconds;
-        position = controller.value.position.inMilliseconds;
-      }
-
-// Oblicz bufor (też względem dvrStart)
       int maxBuffering = 0;
       for (final DurationRange range in controller.value.buffered) {
-        final int end =
-            Platform.isIOS ? (range.end.inMilliseconds - dvrStart).clamp(0, dvrWindow) : range.end.inMilliseconds;
+        final int end = range.end.inMilliseconds;
         if (end > maxBuffering) {
           maxBuffering = end;
         }
-      }
-
-      double playedPercent = 0;
-      double bufferedPercent = 0;
-
-      if (Platform.isIOS) {
-        playedPercent = position / dvrWindow;
-        bufferedPercent = maxBuffering / dvrWindow;
       }
 
       progressIndicator = Stack(
         fit: StackFit.passthrough,
         children: <Widget>[
           LinearProgressIndicator(
-            value: Platform.isIOS ? bufferedPercent : maxBuffering / duration,
+            value: maxBuffering / duration,
             valueColor: AlwaysStoppedAnimation<Color>(colors.bufferedColor),
             backgroundColor: colors.backgroundColor,
           ),
           LinearProgressIndicator(
-            value: Platform.isIOS ? playedPercent : position / duration,
+            value: position / duration,
             valueColor: AlwaysStoppedAnimation<Color>(colors.playedColor),
             backgroundColor: Colors.transparent,
           ),
