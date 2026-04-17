@@ -25,6 +25,8 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget> extends State
   void cancelAndRestartTimer();
 
   bool isVideoFinished(VideoPlayerValue? videoPlayerValue) {
+    print(
+        "Parameters => position > ${videoPlayerValue?.position.inMilliseconds} duration > ${videoPlayerValue?.duration?.inMilliseconds}");
     return videoPlayerValue?.position != null &&
         videoPlayerValue?.duration != null &&
         videoPlayerValue!.position.inMilliseconds != 0 &&
@@ -34,28 +36,55 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget> extends State
 
   void skipBack() {
     if (latestValue != null) {
-      cancelAndRestartTimer();
-      final beginning = const Duration().inMilliseconds;
-      final skip = (latestValue!.position -
-              Duration(milliseconds: betterPlayerControlsConfiguration.backwardSkipTimeInMilliseconds))
-          .inMilliseconds;
-      betterPlayerController!.seekTo(Duration(milliseconds: max(skip, beginning)));
+      if (Platform.isIOS) {
+        betterPlayerController!.seekBackward();
+      } else {
+        cancelAndRestartTimer();
+        final beginning = const Duration().inMilliseconds;
+        final skip = (latestValue!.position -
+                Duration(milliseconds: betterPlayerControlsConfiguration.backwardSkipTimeInMilliseconds))
+            .inMilliseconds;
+        betterPlayerController!.seekTo(Duration(milliseconds: max(skip, beginning)));
+      }
     }
+  }
+
+  void skipBackward() {
+    betterPlayerController!.getDvrWindow();
   }
 
   void skipForward() {
     if (latestValue != null) {
-      cancelAndRestartTimer();
-      final end = latestValue!.duration!.inMilliseconds;
-      final skip = (latestValue!.position +
-              Duration(milliseconds: betterPlayerControlsConfiguration.forwardSkipTimeInMilliseconds))
-          .inMilliseconds;
-      betterPlayerController!.seekTo(Duration(milliseconds: min(skip, end)));
+      if (Platform.isIOS) {
+        betterPlayerController!.seekForward();
+      } else {
+        cancelAndRestartTimer();
+        final end = latestValue!.duration!.inMilliseconds;
+        final skip = (latestValue!.position +
+                Duration(milliseconds: betterPlayerControlsConfiguration.forwardSkipTimeInMilliseconds))
+            .inMilliseconds;
+        betterPlayerController!.seekTo(Duration(milliseconds: min(skip, end)));
+      }
     }
   }
 
   void onShowMoreClicked() {
     _showModalBottomSheet([_buildMoreOptionsList()]);
+  }
+
+  void onShowChromeCastDevices() {
+    _showModalBottomSheet(
+      [
+        SizedBox(
+          width: double.infinity,
+          height: 200,
+          child: betterPlayerController?.betterPlayerChromeCastConfiguration != null
+              ? betterPlayerController!.betterPlayerChromeCastConfiguration!.chromeCastListDevices
+              : SizedBox.shrink(),
+        ),
+      ],
+      backgroundColor: Color(0xFF020202),
+    );
   }
 
   Widget _buildMoreOptionsList() {
@@ -424,11 +453,13 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget> extends State
     );
   }
 
-  void _showModalBottomSheet(List<Widget> children) {
-    Platform.isAndroid ? _showMaterialBottomSheet(children) : _showCupertinoModalBottomSheet(children);
+  void _showModalBottomSheet(List<Widget> children, {Color? backgroundColor}) {
+    Platform.isAndroid
+        ? _showMaterialBottomSheet(children, backgroundColor: backgroundColor)
+        : _showCupertinoModalBottomSheet(children, backgroundColor: backgroundColor);
   }
 
-  void _showCupertinoModalBottomSheet(List<Widget> children) {
+  void _showCupertinoModalBottomSheet(List<Widget> children, {Color? backgroundColor}) {
     showCupertinoModalPopup<void>(
       barrierColor: Colors.transparent,
       context: context,
@@ -439,14 +470,16 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget> extends State
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               decoration: BoxDecoration(
-                color: betterPlayerControlsConfiguration.overflowModalColor,
+                color: backgroundColor ?? betterPlayerControlsConfiguration.overflowModalColor,
                 /*shape: RoundedRectangleBorder(side: Bor,borderRadius: 24,)*/
                 borderRadius: const BorderRadius.only(topLeft: Radius.circular(24.0), topRight: Radius.circular(24.0)),
               ),
-              child: Column(
-                children: children,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Column(
+                  children: children,
+                ),
               ),
             ),
           ),
@@ -455,7 +488,7 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget> extends State
     );
   }
 
-  void _showMaterialBottomSheet(List<Widget> children) {
+  void _showMaterialBottomSheet(List<Widget> children, {Color? backgroundColor}) {
     showModalBottomSheet<void>(
       backgroundColor: Colors.transparent,
       context: context,
@@ -466,13 +499,15 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget> extends State
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               decoration: BoxDecoration(
-                color: betterPlayerControlsConfiguration.overflowModalColor,
+                color: backgroundColor ?? betterPlayerControlsConfiguration.overflowModalColor,
                 borderRadius: const BorderRadius.only(topLeft: Radius.circular(24.0), topRight: Radius.circular(24.0)),
               ),
-              child: Column(
-                children: children,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Column(
+                  children: children,
+                ),
               ),
             ),
           ),

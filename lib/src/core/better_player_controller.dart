@@ -27,7 +27,7 @@ class BetterPlayerController {
   static const String _authorizationHeader = "Authorization";
 
   ///General configuration used in controller instance.
-  final BetterPlayerConfiguration betterPlayerConfiguration;
+  BetterPlayerConfiguration betterPlayerConfiguration;
 
   ///Playlist configuration used in controller instance.
   final BetterPlayerPlaylistConfiguration? betterPlayerPlaylistConfiguration;
@@ -48,12 +48,18 @@ class BetterPlayerController {
   ///Controls configuration
   late BetterPlayerControlsConfiguration _betterPlayerControlsConfiguration;
 
-  final BetterPlayerPlayNextVideoConfiguration? betterPlayerPlayNextVideoConfiguration;
-  final BetterPlayerSkipIntroConfiguration? betterPlayerSkipIntroConfiguration;
+  BetterPlayerPlayNextVideoConfiguration? betterPlayerPlayNextVideoConfiguration;
+  BetterPlayerSkipIntroConfiguration? betterPlayerSkipIntroConfiguration;
 
   final BetterPLayerAirplayConfiguration? betterPLayerAirplayConfiguration;
 
-  final BetterPlayerRestartTvConfiguration? betterPlayerRestartTvConfiguration;
+  BetterPlayerRestartTvConfiguration? betterPlayerRestartTvConfiguration;
+
+  final BetterPlayerSwipeConfiguration? betterPlayerSwipeConfiguration;
+
+  BetterPlayerTvChannelListConfiguration? betterPlayerTvChannelListConfiguration;
+
+  BetterPlayerChromeCastConfiguration? betterPlayerChromeCastConfiguration;
 
   ///Controls configuration
   BetterPlayerControlsConfiguration get betterPlayerControlsConfiguration => _betterPlayerControlsConfiguration;
@@ -64,7 +70,7 @@ class BetterPlayerController {
   /// Defines a event listener where video player events will be send.
   Function(BetterPlayerEvent)? get eventListener => betterPlayerConfiguration.eventListener;
 
-  /// Action handler for onVerticalDragEnd gesture 
+  /// Action handler for onVerticalDragEnd gesture
   Future<BetterPlayerDataSource> Function(BetterPlayerController controller, bool toTop)? fullscreenOnGesture;
 
   ///Flag used to store full screen mode state.
@@ -243,6 +249,9 @@ class BetterPlayerController {
     this.betterPlayerRestartTvConfiguration,
     this.betterPLayerAirplayConfiguration,
     this.fullscreenOnGesture,
+    this.betterPlayerSwipeConfiguration,
+    this.betterPlayerTvChannelListConfiguration,
+    this.betterPlayerChromeCastConfiguration,
     BetterPlayerDataSource? betterPlayerDataSource,
   }) : videoTitleText = ValueNotifier("") {
     this._betterPlayerControlsConfiguration = betterPlayerConfiguration.controlsConfiguration;
@@ -717,6 +726,18 @@ class BetterPlayerController {
     }
   }
 
+  Future<void> seekBackward() async {
+    await videoPlayerController!.seekBackward();
+  }
+
+  Future<void> seekForward() async {
+    await videoPlayerController!.seekForward();
+  }
+
+  Future<void> getDvrWindow() async {
+    await videoPlayerController!.getDvrWindow();
+  }
+
   ///Set volume of player. Allows values from 0.0 to 1.0.
   Future<void> setVolume(double volume) async {
     if (volume < 0.0 || volume > 1.0) {
@@ -840,6 +861,8 @@ class BetterPlayerController {
       _wasInPipMode = false;
       if (!_wasInFullScreenBeforePiP) {
         exitFullScreen();
+      } else {
+        enterFullScreen();
       }
       if (_wasControlsEnabledBeforePiP) {
         setControlsEnabled(true);
@@ -870,6 +893,7 @@ class BetterPlayerController {
   }
 
   void _displayPlayNextButton(VideoPlayerValue currentVideoPlayerValue) {
+    bool actionDone = false;
     if (betterPlayerPlayNextVideoConfiguration != null && videoPlayerController?.value.duration != null) {
       if ((currentVideoPlayerValue.position.inMilliseconds >=
               (videoPlayerController!.value.duration!.inMilliseconds -
@@ -878,13 +902,18 @@ class BetterPlayerController {
               (videoPlayerController!.value.duration!.inMilliseconds -
                   betterPlayerPlayNextVideoConfiguration!.showBeforeEndMillis +
                   betterPlayerPlayNextVideoConfiguration!.autoSwitchToNextMillis)) {
+        actionDone = true;
         showNextVideoButton();
       } else if (currentVideoPlayerValue.position.inMilliseconds >
           (videoPlayerController!.value.duration!.inMilliseconds -
               betterPlayerPlayNextVideoConfiguration!.showBeforeEndMillis +
               betterPlayerPlayNextVideoConfiguration!.autoSwitchToNextMillis)) {
+        actionDone = true;
         hideNextVideoButton();
       }
+    }
+    if (!actionDone) {
+      _showNextVideoButton = false;
     }
   }
 
@@ -907,7 +936,8 @@ class BetterPlayerController {
     _eventListeners.add(eventListener);
   }
 
-  void addOnFullscreenGesture(Future<BetterPlayerDataSource> Function(BetterPlayerController configuration, bool isBottom) function) {
+  void addOnFullscreenGesture(
+      Future<BetterPlayerDataSource> Function(BetterPlayerController configuration, bool isBottom) function) {
     fullscreenOnGesture = (configuration, toTop) async => function(this, toTop);
   }
 
