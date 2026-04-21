@@ -8,6 +8,6 @@
 
 // BetterPlayerView.h
 @interface BetterPlayerView : UIView
-@property AVPlayer *player;
+@property (nonatomic, strong) AVPlayer *player;
 @property (readonly) AVPlayerLayer *playerLayer;
 @end
