@@ -114,6 +114,9 @@ class BetterPlayerConfiguration {
   ///Default value is false.
   final bool useRootNavigator;
 
+  ///Defines title of video
+  final String? videoTitleText;
+
   ///Defines image of video
   final String? videoImageUrl;
 
@@ -155,6 +158,7 @@ class BetterPlayerConfiguration {
     this.expandToFill = true,
     this.useRootNavigator = false,
     this.videoImageUrl,
+    this.videoTitleText,
   });
 
   BetterPlayerConfiguration copyWith({
